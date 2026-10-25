@@ -1349,6 +1349,7 @@ function exportLeadsToCSV() {
  */
 function initAdminSection() {
   const sectionAdmin = document.getElementById('section-admin');
+  const customerView = document.getElementById('customer-view');
   const loginForm = document.getElementById('admin-login-form');
   const emailInput = document.getElementById('admin-email');
   const passwordInput = document.getElementById('admin-password');
@@ -1362,9 +1363,12 @@ function initAdminSection() {
   function syncAdminVisibility() {
     const isAdminHash = window.location.hash === '#admin';
     sectionAdmin.classList.toggle('hidden', !isAdminHash);
+    if (customerView) {
+      customerView.classList.toggle('hidden', isAdminHash);
+    }
     if (isAdminHash) {
       loadAdminLeads();
-      sectionAdmin.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
