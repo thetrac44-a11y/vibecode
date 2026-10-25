@@ -1,5 +1,5 @@
 # Khóa cấu hình & API Key (Tuyệt đối không commit lên Git)
-config.js
+/config.js
 .env
 .env.local
 
