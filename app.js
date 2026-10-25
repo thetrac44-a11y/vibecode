@@ -1059,17 +1059,19 @@ function initLeadModal() {
 
     messageBox.className =
       'rounded-xl p-3 text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-800';
-    messageBox.textContent = `Đăng ký tư vấn gói ${planChosen} thành công! Chuyên viên sẽ sớm liên hệ với bạn.`;
+    messageBox.textContent = `Đăng ký tư vấn gói ${planChosen} thành công! Đã lưu vào danh sách khách hàng (localStorage).`;
     messageBox.classList.remove('hidden');
 
-    // Nếu đang mở trang #admin và đã đăng nhập thì cập nhật lại danh sách
-    if (window.location.hash === '#admin') {
-      loadAdminLeads();
-    }
+    // Cập nhật ngay bảng Danh sách khách hàng trên trang
+    loadAdminLeads();
 
     setTimeout(() => {
       closeModal();
-    }, 1200);
+      const sectionLeads = document.getElementById('section-leads');
+      if (sectionLeads) {
+        sectionLeads.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 900);
   });
 }
 
@@ -1186,113 +1188,26 @@ function mergeCloudAndLocalLeads(cloudLeads, localLeads) {
 }
 
 /**
- * Tải danh sách khách hàng trên trang #admin:
- * - Hiển thị ngay dữ liệu từ localStorage (đúng yêu cầu đề bài để Ban Giám Khảo kiểm tra ngay không bị chặn).
- * - Nếu đã đăng nhập Supabase Auth thì gộp và đồng bộ thêm dữ liệu từ đám mây Supabase.
+ * Tải và hiển thị danh sách khách hàng đã đăng ký tư vấn (từ localStorage)
  */
 async function loadAdminLeads() {
-  const sb = await initSupabaseClient();
-  const loginBox = document.getElementById('admin-login-box');
-  const dataBox = document.getElementById('admin-data-box');
-  const exportBtn = document.getElementById('btn-export-csv');
-  const logoutBtn = document.getElementById('btn-admin-logout');
   const statusNote = document.getElementById('admin-status-note');
-
-  if (!loginBox || !dataBox) return;
-
   const localLeads = getLocalLeads();
 
-  // Luôn hiển thị bảng dữ liệu và nút Xuất CSV để giám khảo chấm localStorage ngay lập tức
-  dataBox.classList.remove('hidden');
-  exportBtn.classList.remove('hidden');
-
-  if (!sb) {
-    loginBox.classList.add('hidden');
-    logoutBtn.classList.add('hidden');
-    statusNote.textContent = `Đang hiển thị ${localLeads.length} khách hàng lưu trong bộ nhớ trình duyệt (localStorage).`;
-    renderLeadTable(localLeads);
-    return;
+  if (statusNote) {
+    statusNote.textContent = `Đang hiển thị ${localLeads.length} khách hàng đã lưu trong localStorage.`;
   }
 
-  const { data: sessionData } = await sb.auth.getSession();
-  const session = sessionData?.session;
-
-  if (!session) {
-    loginBox.classList.remove('hidden');
-    logoutBtn.classList.add('hidden');
-    statusNote.textContent = `Đang hiển thị ${localLeads.length} khách hàng từ localStorage. Đăng nhập bên trên nếu muốn đồng bộ toàn bộ từ đám mây Supabase.`;
-    renderLeadTable(localLeads);
-    return;
-  }
-
-  // Đã đăng nhập Supabase -> Ẩn form login, đồng bộ localStorage lên Supabase và tải toàn bộ danh sách
-  loginBox.classList.add('hidden');
-  logoutBtn.classList.remove('hidden');
-
-  const { data, error } = await sb
-    .from('leads')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Lỗi tải danh sách từ Supabase:', error);
-    statusNote.textContent = `Đang hiển thị ${localLeads.length} khách hàng từ localStorage (Chưa tải được từ Supabase: ${error.message}).`;
-    renderLeadTable(localLeads);
-    return;
-  }
-
-  let cloudLeads = Array.isArray(data) ? data : [];
-
-  // Tự động đẩy các bản ghi mới ở localStorage lên Supabase
-  if (localLeads.length > 0) {
-    let syncedNew = false;
-    for (const localItem of localLeads) {
-      const existsInCloud = cloudLeads.some(
-        (c) =>
-          normalizePhone(c.phone) === normalizePhone(localItem.phone) &&
-          String(c.plan_chosen || '').toLowerCase() === String(localItem.planChosen || '').toLowerCase()
-      );
-      if (!existsInCloud) {
-        try {
-          await insertLeadViaAnonRest(localItem);
-          syncedNew = true;
-        } catch (syncErr) {
-          console.warn('Không thể đồng bộ bản ghi local lên Supabase:', syncErr);
-        }
-      }
-    }
-
-    if (syncedNew) {
-      const refreshed = await sb
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!refreshed.error && Array.isArray(refreshed.data)) {
-        cloudLeads = refreshed.data;
-      }
-    }
-  }
-
-  const mergedLeads = mergeCloudAndLocalLeads(cloudLeads, localLeads);
-  statusNote.textContent = `Đang hiển thị ${mergedLeads.length} khách hàng (Đồng bộ Supabase & localStorage — tài khoản: ${session.user.email}).`;
-  renderLeadTable(mergedLeads);
+  renderLeadTable(localLeads);
 }
 
 /**
- * Xóa 1 dòng khách hàng trên Supabase và localStorage
+ * Xóa 1 dòng khách hàng trong localStorage (và Supabase nếu có)
  */
 async function deleteLeadById(id) {
   const targetRow = currentAdminLeads.find((item) => String(item.id) === String(id));
-  const sb = await initSupabaseClient();
-  if (sb) {
-    const { error } = await sb.from('leads').delete().eq('id', id);
-    if (error) {
-      alert('Không thể xóa dòng này trên Supabase: ' + error.message);
-      return;
-    }
-  }
 
-  // Đồng bộ xóa trong localStorage theo id hoặc theo SĐT + gói đã chọn
+  // Xóa trong localStorage theo id hoặc theo SĐT + gói đã chọn
   const localLeads = getLocalLeads().filter((item) => {
     if (String(item.id) === String(id)) return false;
     if (
@@ -1349,83 +1264,21 @@ function exportLeadsToCSV() {
 }
 
 /**
- * Khởi tạo Khu vực quản trị ẩn (#admin)
+ * Khởi tạo Khu vực Danh sách khách hàng (#section-leads)
  */
 function initAdminSection() {
-  const sectionAdmin = document.getElementById('section-admin');
-  const loginForm = document.getElementById('admin-login-form');
-  const emailInput = document.getElementById('admin-email');
-  const passwordInput = document.getElementById('admin-password');
-  const loginError = document.getElementById('admin-login-error');
-  const loginBtn = document.getElementById('btn-admin-login');
-  const logoutBtn = document.getElementById('btn-admin-logout');
+  const sectionLeads = document.getElementById('section-leads');
   const exportBtn = document.getElementById('btn-export-csv');
+  const refreshBtn = document.getElementById('btn-clear-leads');
 
-  if (!sectionAdmin) return;
+  if (!sectionLeads) return;
 
-  function syncAdminVisibility() {
-    const isAdminHash = window.location.hash === '#admin';
-    sectionAdmin.classList.toggle('hidden', !isAdminHash);
-    if (isAdminHash) {
+  // Hiển thị ngay danh sách khách hàng từ localStorage khi mở trang
+  loadAdminLeads();
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
       loadAdminLeads();
-      sectionAdmin.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-
-  window.addEventListener('hashchange', syncAdminVisibility);
-  syncAdminVisibility();
-
-  // Xử lý đăng nhập Supabase Auth
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      loginError.classList.add('hidden');
-
-      const sb = await initSupabaseClient();
-      if (!sb) {
-        loginError.textContent =
-          'Chưa cấu hình SUPABASE_URL và SUPABASE_ANON_KEY trong file config.js hoặc Vercel.';
-        loginError.classList.remove('hidden');
-        return;
-      }
-
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-
-      if (!email || !password) {
-        loginError.textContent = 'Vui lòng nhập đầy đủ email và mật khẩu quản trị.';
-        loginError.classList.remove('hidden');
-        return;
-      }
-
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Đang đăng nhập...';
-
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-
-      loginBtn.disabled = false;
-      loginBtn.textContent = 'Đăng nhập';
-
-      if (error) {
-        loginError.textContent = 'Sai email hoặc mật khẩu quản trị.';
-        loginError.classList.remove('hidden');
-        return;
-      }
-
-      passwordInput.value = '';
-      await loadAdminLeads();
-    });
-  }
-
-  // Xử lý đăng xuất
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      const sb = await initSupabaseClient();
-      if (sb) {
-        await sb.auth.signOut();
-      }
-      currentAdminLeads = [];
-      await loadAdminLeads();
     });
   }
 
@@ -1435,7 +1288,7 @@ function initAdminSection() {
   }
 
   // Xử lý nút Xóa từng dòng khách hàng
-  sectionAdmin.addEventListener('click', (event) => {
+  sectionLeads.addEventListener('click', (event) => {
     const delBtn = event.target.closest('.btn-delete-lead');
     if (!delBtn) return;
     const leadId = delBtn.getAttribute('data-delete-lead-id');
