@@ -41,24 +41,24 @@
 
   <!-- Thanh điều hướng (Header) -->
   <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
-    <div class="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between">
-      <a href="#" class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+    <div class="max-w-5xl mx-auto px-3.5 sm:px-4 py-3 flex items-center justify-between gap-2">
+      <a href="#" class="flex items-center gap-2 shrink-0">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-base sm:text-lg shadow-sm">
           H
         </div>
         <div>
-          <span class="font-bold text-slate-900 text-base sm:text-lg tracking-tight">HostingAdvisor</span>
-          <span class="hidden sm:inline-block ml-2 text-xs font-medium bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full border border-brand-200">
+          <span class="font-bold text-slate-900 text-sm sm:text-lg tracking-tight">HostingAdvisor</span>
+          <span class="hidden md:inline-block ml-2 text-xs font-medium bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full border border-brand-200">
             AI Tư vấn Hosting &amp; Domain
           </span>
         </div>
       </a>
 
-      <nav class="flex items-center gap-4 text-sm font-medium text-slate-600">
+      <nav class="flex items-center gap-2.5 sm:gap-4 text-xs sm:text-sm font-medium text-slate-600 whitespace-nowrap">
         <a href="#section-hero-form" class="hover:text-brand-600 transition-colors">Tư vấn</a>
         <a href="#section-comparison" class="hover:text-brand-600 transition-colors">So sánh</a>
-        <a href="#section-faq" class="hover:text-brand-600 transition-colors">Hỏi đáp (FAQ)</a>
-        <a href="#admin" class="py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-semibold transition-colors">Quản trị</a>
+        <a href="#section-faq" class="hover:text-brand-600 transition-colors"><span class="hidden sm:inline">Hỏi đáp (</span>FAQ<span class="hidden sm:inline">)</span></a>
+        <a href="#admin" class="py-1.5 px-2.5 sm:px-3 rounded-lg bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-semibold transition-colors">Quản trị</a>
       </nav>
     </div>
   </header>
@@ -157,11 +157,11 @@
                 name="traffic"
                 class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 focus:outline-none transition-all"
               >
-                <option value="">-- Chọn mức truy cập dự kiến --</option>
-                <option value="Dưới 1.000" data-visits="1000">Dưới 1.000 lượt/tháng (Mới mở, ít khách)</option>
-                <option value="1.000-10.000" data-visits="10000">1.000 - 10.000 lượt/tháng (Shop nhỏ, khách ổn định)</option>
-                <option value="10.000-50.000" data-visits="50000">10.000 - 50.000 lượt/tháng (Đông khách, có chạy quảng cáo)</option>
-                <option value="Trên 50.000" data-visits="100000">Trên 50.000 lượt/tháng (Quy mô lớn, truy cập cao)</option>
+                <option value="">Chọn mức truy cập dự kiến...</option>
+                <option value="Dưới 1.000" data-visits="1000">Dưới 1.000 lượt/tháng (Mới mở)</option>
+                <option value="1.000-10.000" data-visits="10000">1.000 - 10.000 lượt/tháng (Shop nhỏ)</option>
+                <option value="10.000-50.000" data-visits="50000">10.000 - 50.000 lượt/tháng (Đông khách)</option>
+                <option value="Trên 50.000" data-visits="100000">Trên 50.000 lượt/tháng (Quy mô lớn)</option>
               </select>
               <p id="error-traffic" class="hidden text-xs font-medium text-red-600 mt-2 flex items-center gap-1" role="alert"></p>
             </div>
@@ -348,7 +348,7 @@
                 Danh sách khách hàng đăng ký tư vấn
               </h2>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 whitespace-nowrap">
               <button
                 type="button"
                 id="btn-export-csv"
