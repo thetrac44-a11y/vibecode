@@ -12,10 +12,10 @@ create table if not exists public.leads (
 -- Bật Row Level Security (RLS)
 alter table public.leads enable row level security;
 
--- Khách (ẩn danh) chỉ được THÊM, không được đọc/sửa/xoá
+-- Khách (ẩn danh) hoặc quản trị viên đang đăng nhập đều được THÊM
 create policy "Anyone can insert leads"
   on public.leads for insert
-  to anon
+  to anon, authenticated
   with check (true);
 
 -- Chỉ người đã đăng nhập (chủ shop / admin) mới được xem và xoá
