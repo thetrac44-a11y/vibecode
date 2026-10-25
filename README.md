@@ -9,6 +9,9 @@
 - **Cuộc thi:** VIBE-CODING 2026
 - **Đề bài:** Đề số 1 — AI tư vấn chọn gói Hosting / Domain
 - **Bảng dự thi:** Bảng A
+- **Link chạy trực tiếp (Vercel):** https://vibecoding-orcin-six.vercel.app
+- **Link Quản trị viên:** https://vibecoding-orcin-six.vercel.app/#admin
+- **Kho mã nguồn (GitHub):** https://github.com/thetrac44-a11y/vibecoding
 
 ---
 
