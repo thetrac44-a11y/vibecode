@@ -1,0 +1,17 @@
+{
+  "name": "vibe-hosting-advisor",
+  "version": "3.3.0",
+  "description": "HostingAdvisor - AI Tư Vấn Hosting/Domain & Nền Tảng Thương Mại Điện Tử Quản Trị Đơn Hàng (OMS)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

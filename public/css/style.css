@@ -1,0 +1,118 @@
+/**
+ * public/css/style.css
+ * Tùy chỉnh giao diện, hiệu ứng FAQ Accordion, Con dấu Hóa đơn điện tử và chế độ In (@media print)
+ */
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Trạng thái chọn của thẻ Radio Loại website */
+.site-type-card.is-selected {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+/* Trạng thái chọn của nút Ngân sách gợi ý nhanh & Bộ lọc danh mục */
+.budget-chip.is-active,
+.catalog-filter-btn.is-active,
+.cycle-btn.is-active {
+  border-color: #2563eb;
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Hiệu ứng đóng/mở mượt cho FAQ Accordion */
+.faq-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease-out;
+}
+
+.faq-item.is-open .faq-content-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.faq-content-inner {
+  overflow: hidden;
+}
+
+/* Thanh cuộn ngang mượt cho bảng trên điện thoại */
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+/* Con dấu mộc Hóa đơn điện tử (PAID / UNPAID) */
+.invoice-stamp-paid {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 3px double #dc2626;
+  color: #dc2626;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  transform: rotate(-6deg);
+  background-color: rgba(254, 242, 242, 0.85);
+}
+
+.invoice-stamp-unpaid {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 3px double #d97706;
+  color: #d97706;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  transform: rotate(-4deg);
+  background-color: rgba(255, 251, 235, 0.9);
+}
+
+/* Chế độ in Hóa đơn / Lưu PDF (@media print) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-modal,
+  #invoice-modal * {
+    visibility: visible;
+  }
+
+  #invoice-modal {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #invoice-printable-box {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 16px !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

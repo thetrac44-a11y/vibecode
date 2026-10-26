@@ -1,0 +1,189 @@
+{
+  "settings": {
+    "bankId": "MB",
+    "accountNo": "0988123456",
+    "accountName": "HOSTING ADVISOR CORP",
+    "companyName": "CÔNG TY CỔ PHẦN HẠ TẦNG SỐ HOSTING ADVISOR",
+    "taxCode": "0109999999"
+  },
+  "users": [
+    {
+      "id": "usr_admin",
+      "username": "admin",
+      "password": "sha256$4528708a37f36cb3$9f5ec21bb6d6dd71f1b5925169a580c9746cdc8da52ed76904b91e976848acf0",
+      "fullName": "Quản Trị Viên Hệ Thống",
+      "phone": "0901000001",
+      "email": "admin@hostingadvisor.vn",
+      "role": "admin",
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    }
+  ],
+  "coupons": [
+    {
+      "code": "VIBE2026",
+      "type": "percent",
+      "value": 15,
+      "description": "Giảm 15% tổng hóa đơn đăng ký mới"
+    },
+    {
+      "code": "CHUSHOP",
+      "type": "fixed",
+      "value": 50000,
+      "description": "Giảm trực tiếp 50.000đ cho chủ shop online"
+    }
+  ],
+  "addons": [
+    {
+      "id": "addon_whois",
+      "name": "Bảo Vệ Ẩn Danh Tên Miền (Whois Privacy)",
+      "price": 50000,
+      "billingType": "yearly",
+      "unitLabel": "50.000đ / năm",
+      "description": "Ẩn thông tin cá nhân và SĐT của bạn trên dữ liệu công khai Whois"
+    },
+    {
+      "id": "addon_backup",
+      "name": "Sao Lưu Dữ Liệu Tự Động Hằng Ngày (Daily Backup)",
+      "price": 30000,
+      "billingType": "monthly",
+      "unitLabel": "30.000đ / tháng",
+      "description": "Tự động sao lưu website vào 0h mỗi đêm, khôi phục với 1 click"
+    },
+    {
+      "id": "addon_ip",
+      "name": "Địa Chỉ IP Riêng Chuyên Dụng (Dedicated IP)",
+      "price": 80000,
+      "billingType": "monthly",
+      "unitLabel": "80.000đ / tháng",
+      "description": "IP độc lập giúp uy tín email và tối ưu SEO vượt trội"
+    }
+  ],
+  "domain_pricing": [
+    {
+      "extension": ".com",
+      "price": 280000,
+      "description": "Tên miền quốc tế phổ biến nhất"
+    },
+    {
+      "extension": ".vn",
+      "price": 550000,
+      "description": "Tên miền quốc gia Việt Nam uy tín"
+    },
+    {
+      "extension": ".com.vn",
+      "price": 450000,
+      "description": "Doanh nghiệp thương mại Việt Nam"
+    },
+    {
+      "extension": ".shop",
+      "price": 190000,
+      "description": "Cửa hàng bán lẻ trực tuyến"
+    }
+  ],
+  "plans": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "type": "Shared Hosting",
+      "pricePerMonth": 39000,
+      "storage": "5 GB SSD",
+      "bandwidth": "50 GB/tháng",
+      "recommendedVisits": 3000,
+      "freeDomain": false,
+      "features": [
+        "1 website",
+        "SSL miễn phí",
+        "1 email doanh nghiệp"
+      ],
+      "bestFor": "Blog cá nhân, trang giới thiệu nhỏ"
+    },
+    {
+      "id": "basic",
+      "name": "Basic",
+      "type": "Shared Hosting",
+      "pricePerMonth": 69000,
+      "storage": "20 GB SSD",
+      "bandwidth": "200 GB/tháng",
+      "recommendedVisits": 10000,
+      "freeDomain": true,
+      "features": [
+        "3 website",
+        "SSL miễn phí",
+        "Tặng tên miền .com/.vn năm đầu",
+        "5 email doanh nghiệp"
+      ],
+      "bestFor": "Trang giới thiệu doanh nghiệp, shop nhỏ mới bắt đầu"
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "type": "Shared Hosting",
+      "pricePerMonth": 129000,
+      "storage": "50 GB NVMe",
+      "bandwidth": "Không giới hạn",
+      "recommendedVisits": 30000,
+      "freeDomain": true,
+      "features": [
+        "10 website",
+        "SSL miễn phí",
+        "Tặng tên miền năm đầu",
+        "Sao lưu hằng tuần",
+        "Tăng tốc LiteSpeed"
+      ],
+      "bestFor": "Shop online vừa, nhiều ảnh sản phẩm"
+    },
+    {
+      "id": "shop-pro",
+      "name": "Shop Pro",
+      "type": "Cloud Hosting",
+      "pricePerMonth": 249000,
+      "storage": "100 GB NVMe",
+      "bandwidth": "Không giới hạn",
+      "recommendedVisits": 80000,
+      "freeDomain": true,
+      "features": [
+        "Tối ưu WooCommerce",
+        "Sao lưu hằng ngày",
+        "CDN miễn phí",
+        "Tặng tên miền năm đầu",
+        "Hỗ trợ ưu tiên"
+      ],
+      "bestFor": "Shop bán hàng đông khách, có chạy quảng cáo"
+    },
+    {
+      "id": "vps-1",
+      "name": "VPS Growth",
+      "type": "VPS",
+      "pricePerMonth": 399000,
+      "storage": "80 GB NVMe",
+      "bandwidth": "1 TB/tháng",
+      "recommendedVisits": 150000,
+      "freeDomain": false,
+      "features": [
+        "2 CPU, 4 GB RAM",
+        "Toàn quyền quản trị",
+        "Sao lưu hằng ngày",
+        "Tự cài phần mềm theo ý"
+      ],
+      "bestFor": "Website lượng truy cập cao, cần tuỳ biến sâu"
+    },
+    {
+      "id": "vps-2",
+      "name": "VPS Power",
+      "type": "VPS",
+      "pricePerMonth": 799000,
+      "storage": "160 GB NVMe",
+      "bandwidth": "3 TB/tháng",
+      "recommendedVisits": 500000,
+      "freeDomain": false,
+      "features": [
+        "4 CPU, 8 GB RAM",
+        "Toàn quyền quản trị",
+        "Sao lưu hằng ngày",
+        "IP riêng"
+      ],
+      "bestFor": "Báo điện tử, sàn thương mại, lượng truy cập lớn"
+    }
+  ],
+  "orders": []
+}
