@@ -35,7 +35,7 @@
 
 ---
 
-## 3. Bảng Phân Công Nhiệm Vụ Cho 04 Thành Viên (Tìm từ khóa `TODO` trong code)
+## 3. Bảng Phân Công Nhiệm Vụ Cho Thành Viên (Tìm từ khóa `TODO` trong code)
 
 Mỗi thành viên tạo một nhánh Git riêng theo cú pháp `git checkout -b ten-nhanh` trước khi code:
 
