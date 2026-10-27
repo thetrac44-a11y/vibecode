@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ============================================================================
-  // LEAD MANAGEMENT — Quan ly Khach Hang Tiem Nang
+  // LEAD MANAGEMENT — Quan ly Khach Hang Tiem Nang (RBAC Staff & Quick Actions)
   // ============================================================================
 
   // Tab switching logic
@@ -1021,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = {
       new: 'Moi',
       contacted: 'Da lien he',
-      converted: 'Chuyen doi don',
+      converted: 'Da chot don',
       lost: 'Khong tiep can'
     };
     return map[status] || status;
@@ -1029,10 +1029,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getLeadStatusClass(status) {
     const map = {
-      new: 'bg-amber-100 text-amber-700',
-      contacted: 'bg-blue-100 text-blue-700',
-      converted: 'bg-emerald-100 text-emerald-700',
-      lost: 'bg-slate-100 text-slate-500'
+      new: 'bg-amber-100 text-amber-800 border border-amber-200',
+      contacted: 'bg-blue-100 text-blue-800 border border-blue-200',
+      converted: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+      lost: 'bg-slate-100 text-slate-600 border border-slate-200'
     };
     return map[status] || 'bg-slate-100 text-slate-500';
   }
@@ -1093,6 +1093,36 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusClass = getLeadStatusClass(lead.status);
       const statusLabel = getLeadStatusLabel(lead.status);
       const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleString('vi-VN') : '';
+      const isMine = adminUser && lead.assigned_to === adminUser.id;
+      const isUnassigned = !lead.assigned_to;
+
+      // Render cot Nguoi Phu Trach
+      let assigneeHtml = '';
+      if (isMine) {
+        assigneeHtml = `<span class="inline-block px-2.5 py-0.5 text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 rounded-full">Ban phu trach</span>`;
+      } else if (isUnassigned) {
+        assigneeHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-400">Chua co</span>
+            <button class="btn-quick-claim text-xs font-bold px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md transition-colors" data-lead-id="${lead.id}">
+              Nhan
+            </button>
+          </div>
+        `;
+      } else {
+        assigneeHtml = `<span class="text-xs text-slate-600 font-medium">${escapeHtml(lead.assigned_to_name || 'Da phan cong')}</span>`;
+      }
+
+      // Render cot Thao Tac Nhanh
+      const quickCallBtn = `<a href="tel:${escapeHtml(lead.phone || '')}" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap">Goi ${escapeHtml(lead.phone || '')}</a>`;
+      const quickContactedBtn = lead.status === 'new'
+        ? `<button class="btn-quick-contacted text-xs font-semibold px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Da goi</button>`
+        : '';
+      const quickConvertBtn = lead.status !== 'converted'
+        ? `<button class="btn-quick-convert text-xs font-bold px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chot don</button>`
+        : `<span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Da tao don</span>`;
+      const detailBtn = `<button class="btn-open-lead text-xs font-semibold px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chi tiet</button>`;
+
       return `<tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
         <td class="px-4 py-3">
           <p class="font-semibold text-slate-800">${escapeHtml(lead.customer_name || '')}</p>
@@ -1100,28 +1130,150 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="text-xs text-slate-400 mt-0.5">${createdDate}</p>
         </td>
         <td class="px-4 py-3 text-xs text-slate-600">
-          <p>${formatSiteType(lead.site_type)}</p>
+          <p class="font-medium text-slate-700">${formatSiteType(lead.site_type)}</p>
           <p class="text-slate-400">${formatTraffic(lead.traffic)}</p>
-          ${lead.budget ? '<p class="text-slate-400">NS: ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/th</p>' : ''}
-          ${lead.desired_domain ? '<p class="text-slate-500">Mien: ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
+          ${lead.budget ? '<p class="text-slate-500">NS: ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/th</p>' : ''}
+          ${lead.desired_domain ? '<p class="text-brand-600 font-mono">Mien: ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
         </td>
         <td class="px-4 py-3">
-          <p class="text-xs font-semibold text-brand-600">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</p>
+          <p class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-lg inline-block border border-brand-100">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</p>
         </td>
         <td class="px-4 py-3">
-          <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">${statusLabel}</span>
+          <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}">${statusLabel}</span>
         </td>
-        <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(lead.assigned_to_name || 'Chua phan cong')}</td>
         <td class="px-4 py-3">
-          <button class="btn-open-lead text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold px-3 py-1.5 rounded-lg transition-colors" data-lead-id="${lead.id}">
-            Xu ly
-          </button>
+          ${assigneeHtml}
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex flex-wrap items-center gap-1.5">
+            ${quickCallBtn}
+            ${quickContactedBtn}
+            ${quickConvertBtn}
+            ${detailBtn}
+          </div>
         </td>
       </tr>`;
     }).join('');
 
+    // Gan su kien cho cac nut trong bang
     tbody.querySelectorAll('.btn-open-lead').forEach(btn => {
       btn.addEventListener('click', () => openLeadModal(btn.dataset.leadId));
+    });
+
+    // 1-Click: Nhan lead ngay tren bang
+    tbody.querySelectorAll('.btn-quick-claim').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await quickClaimLead(btn.dataset.leadId);
+      });
+    });
+
+    // 1-Click: Danh dau da lien he ngay tren bang
+    tbody.querySelectorAll('.btn-quick-contacted').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await quickUpdateStatus(btn.dataset.leadId, 'contacted');
+      });
+    });
+
+    // 1-Click: Chot don hang ngay tren bang
+    tbody.querySelectorAll('.btn-quick-convert').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await quickConvertToOrder(btn.dataset.leadId);
+      });
+    });
+  }
+
+  // 1-Click API: Nhan lead
+  async function quickClaimLead(leadId) {
+    try {
+      const res = await fetch('/api/leads/' + leadId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ action: 'claim', status: 'contacted' })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const idx = allLeads.findIndex(l => l.id === leadId);
+        if (idx !== -1) {
+          allLeads[idx] = {
+            ...allLeads[idx],
+            assigned_to: adminUser.id,
+            assigned_to_name: adminUser.fullName || adminUser.username,
+            status: allLeads[idx].status === 'new' ? 'contacted' : allLeads[idx].status
+          };
+        }
+        renderLeadsTable();
+        updateLeadKPIs();
+      } else {
+        alert(data.error || 'Khong the nhan lead');
+      }
+    } catch (err) {
+      alert('Loi khi nhan lead: ' + err.message);
+    }
+  }
+
+  // 1-Click API: Cap nhat trang thai
+  async function quickUpdateStatus(leadId, newStatus) {
+    try {
+      const res = await fetch('/api/leads/' + leadId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const idx = allLeads.findIndex(l => l.id === leadId);
+        if (idx !== -1) {
+          allLeads[idx].status = newStatus;
+        }
+        renderLeadsTable();
+        updateLeadKPIs();
+      }
+    } catch (err) {
+      alert('Loi cap nhat trang thai: ' + err.message);
+    }
+  }
+
+  // 1-Click API: Chot don hang
+  async function quickConvertToOrder(leadId) {
+    if (!confirm('Xac nhan chot don va tao don hang chinh thuc cho khach hang nay?')) return;
+    try {
+      const res = await fetch('/api/leads/' + leadId + '/convert-to-order', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.ok && data.order) {
+        alert(`Chot don thanh cong! Don hang moi da duoc tao: ${data.order.id} (${data.order.totalAmount ? Number(data.order.totalAmount).toLocaleString('vi-VN') + 'd' : ''}). Dang chuyen sang tab Don Hang.`);
+        // Cap nhat lead
+        const idx = allLeads.findIndex(l => l.id === leadId);
+        if (idx !== -1) {
+          allLeads[idx].status = 'converted';
+        }
+        renderLeadsTable();
+        updateLeadKPIs();
+        // Reload lai danh sach don hang va chuyen tab
+        await loadStaffAndOrders();
+        switchAdminTab('orders');
+      } else {
+        alert(data.error || 'Loi khi chuyen doi thanh don hang');
+      }
+    } catch (err) {
+      alert('Loi chot don: ' + err.message);
+    }
+  }
+
+  function setActiveStatusButton(status) {
+    const input = document.getElementById('lead-status-select');
+    if (input) input.value = status;
+    document.querySelectorAll('.btn-lead-status').forEach(btn => {
+      if (btn.dataset.status === status) {
+        btn.className = 'btn-lead-status px-2.5 py-2 text-xs font-bold rounded-xl border border-brand-500 bg-brand-600 text-white shadow-sm transition-all';
+      } else {
+        btn.className = 'btn-lead-status px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-slate-700';
+      }
     });
   }
 
@@ -1133,35 +1285,79 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoEl = document.getElementById('lead-detail-info');
     if (infoEl) {
       infoEl.innerHTML = `
-        <div class="bg-slate-50 rounded-xl p-4 space-y-1.5">
+        <div class="bg-slate-50 rounded-xl p-4 space-y-1.5 border border-slate-200">
           <p><span class="font-semibold text-slate-600 w-28 inline-block">Ma lead:</span> <span class="font-mono text-xs">${escapeHtml(lead.id)}</span></p>
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ho ten:</span> ${escapeHtml(lead.customer_name)}</p>
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">So DT:</span> <a href="tel:${escapeHtml(lead.phone)}" class="text-brand-600 font-semibold">${escapeHtml(lead.phone)}</a></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ho ten:</span> <span class="font-bold text-slate-900">${escapeHtml(lead.customer_name)}</span></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">So DT:</span> <a href="tel:${escapeHtml(lead.phone)}" class="text-brand-600 font-bold underline">${escapeHtml(lead.phone)}</a></p>
           ${lead.email ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Email:</span> ' + escapeHtml(lead.email) + '</p>' : ''}
           <p><span class="font-semibold text-slate-600 w-28 inline-block">Loai web:</span> ${formatSiteType(lead.site_type)}</p>
           <p><span class="font-semibold text-slate-600 w-28 inline-block">Luu luong:</span> ${formatTraffic(lead.traffic)}</p>
           ${lead.budget ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ngan sach:</span> ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/thang</p>' : ''}
-          ${lead.desired_domain ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ten mien:</span> ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
+          ${lead.desired_domain ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ten mien:</span> <span class="font-mono text-brand-700 font-semibold">' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</span></p>' : ''}
           <p><span class="font-semibold text-slate-600 w-28 inline-block">Goi de xuat:</span> <span class="text-brand-600 font-bold">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</span></p>
-          ${lead.ai_advice ? '<div class="mt-2 p-2.5 bg-white rounded-lg border border-slate-100"><p class="text-xs font-semibold text-slate-500 mb-1">Loi tu van AI:</p><p class="text-xs text-slate-600 leading-relaxed">' + escapeHtml(lead.ai_advice.slice(0, 300)) + (lead.ai_advice.length > 300 ? '...' : '') + '</p></div>' : ''}
-          ${lead.notes ? '<div class="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"><p class="text-xs font-semibold text-amber-700 mb-1">Ghi chu cu:</p><p class="text-xs text-amber-800">' + escapeHtml(lead.notes) + '</p></div>' : ''}
+          ${lead.notes ? '<div class="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200"><p class="text-xs font-semibold text-amber-800 mb-0.5">Nhat ky ghi chu cu:</p><p class="text-xs text-amber-900">' + escapeHtml(lead.notes) + '</p></div>' : ''}
         </div>
       `;
     }
 
-    const statusSelect = document.getElementById('lead-status-select');
-    if (statusSelect) statusSelect.value = lead.status || 'new';
+    // Set status buttons
+    setActiveStatusButton(lead.status || 'new');
 
-    const assigneeSelect = document.getElementById('lead-assignee-select');
-    if (assigneeSelect) {
-      assigneeSelect.innerHTML = '<option value="">Chua phan cong</option>';
-      (staffUsers || []).forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.fullName || s.full_name || s.username;
-        if (s.id === lead.assigned_to) opt.selected = true;
-        assigneeSelect.appendChild(opt);
-      });
+    // Reset AI script box
+    const scriptBox = document.getElementById('lead-ai-script-box');
+    if (scriptBox) {
+      scriptBox.classList.add('hidden');
+      scriptBox.textContent = '';
+    }
+
+    // RBAC: Staff vs Admin
+    const isAdmin = adminUser && adminUser.role === 'admin';
+    const adminAssigneeBox = document.getElementById('lead-assignee-admin-box');
+    const staffAssigneeBox = document.getElementById('lead-assignee-staff-box');
+    const deleteBtn = document.getElementById('btn-delete-lead');
+
+    if (isAdmin) {
+      adminAssigneeBox?.classList.remove('hidden');
+      staffAssigneeBox?.classList.add('hidden');
+      deleteBtn?.classList.remove('hidden');
+
+      const assigneeSelect = document.getElementById('lead-assignee-select');
+      if (assigneeSelect) {
+        assigneeSelect.innerHTML = '<option value="">Chua phan cong</option>';
+        (staffUsers || []).forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.fullName || s.full_name || s.username;
+          if (s.id === lead.assigned_to) opt.selected = true;
+          assigneeSelect.appendChild(opt);
+        });
+      }
+    } else {
+      // Staff mode: Hide assignee dropdown & delete button!
+      adminAssigneeBox?.classList.add('hidden');
+      staffAssigneeBox?.classList.remove('hidden');
+      deleteBtn?.classList.add('hidden');
+
+      const staffAssigneeName = document.getElementById('lead-staff-assignee-name');
+      const staffClaimBtn = document.getElementById('btn-staff-claim-lead');
+      if (staffAssigneeName) {
+        staffAssigneeName.textContent = lead.assigned_to_name || 'Chua co ai phu trach';
+      }
+      if (staffClaimBtn) {
+        if (lead.assigned_to === adminUser.id) {
+          staffClaimBtn.textContent = 'Ban dang phu trach lead nay';
+          staffClaimBtn.disabled = true;
+          staffClaimBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200';
+        } else if (lead.assigned_to) {
+          staffClaimBtn.textContent = 'Da co nguoi khac phu trach';
+          staffClaimBtn.disabled = true;
+          staffClaimBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed';
+        } else {
+          staffClaimBtn.textContent = 'Nhan Cham Soc Khach Nay';
+          staffClaimBtn.disabled = false;
+          staffClaimBtn.className = 'bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors';
+        }
+      }
     }
 
     const notesInput = document.getElementById('lead-notes-input');
@@ -1180,33 +1376,38 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLeadId = null;
   }
 
+  // Luu cap nhat tu Modal
   async function saveLeadUpdate() {
     if (!currentLeadId) return;
     const statusVal = document.getElementById('lead-status-select')?.value || 'new';
-    const assigneeEl = document.getElementById('lead-assignee-select');
-    const assigneeId = assigneeEl?.value || '';
-    const assigneeName = assigneeEl?.options[assigneeEl.selectedIndex]?.textContent || 'Chua phan cong';
     const notesVal = document.getElementById('lead-notes-input')?.value || '';
     const saveMsg = document.getElementById('lead-save-msg');
     const saveBtn = document.getElementById('btn-save-lead');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Dang luu...'; }
 
+    const payload = { status: statusVal, notes: notesVal };
+    if (adminUser && adminUser.role === 'admin') {
+      const assigneeEl = document.getElementById('lead-assignee-select');
+      payload.assignedTo = assigneeEl?.value || '';
+      payload.assignedToName = assigneeEl?.options[assigneeEl.selectedIndex]?.textContent || 'Chua phan cong';
+    }
+
     try {
       const res = await fetch('/api/leads/' + currentLeadId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ status: statusVal, assignedTo: assigneeId, assignedToName: assigneeName, notes: notesVal })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.ok) {
         const idx = allLeads.findIndex(l => l.id === currentLeadId);
         if (idx !== -1) {
-          allLeads[idx] = { ...allLeads[idx], status: statusVal, assigned_to: assigneeId, assigned_to_name: assigneeName, notes: notesVal };
+          allLeads[idx] = { ...allLeads[idx], ...data.lead };
         }
         renderLeadsTable();
         updateLeadKPIs();
-        if (saveMsg) { saveMsg.textContent = 'Da luu thanh cong.'; saveMsg.className = 'text-xs text-emerald-600 mt-1'; saveMsg.classList.remove('hidden'); }
-        setTimeout(() => closeLeadModal(), 1200);
+        if (saveMsg) { saveMsg.textContent = 'Da luu thanh cong.'; saveMsg.className = 'text-xs text-emerald-600 mt-1 font-semibold'; saveMsg.classList.remove('hidden'); }
+        setTimeout(() => closeLeadModal(), 800);
       } else {
         throw new Error(data.error || 'Loi he thong');
       }
@@ -1217,8 +1418,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Xoa lead (Admin Only)
   async function deleteLead() {
     if (!currentLeadId) return;
+    if (adminUser && adminUser.role !== 'admin') {
+      alert('Chi Quan tri vien (Admin) moi co quyen xoa lead.');
+      return;
+    }
     if (!confirm('Xac nhan xoa lead nay khoi he thong?')) return;
     try {
       const res = await fetch('/api/leads/' + currentLeadId, {
@@ -1237,11 +1443,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // AI Soan Kich Ban Telesale cho Lead
+  async function generateLeadSalesScript() {
+    if (!currentLeadId) return;
+    const btn = document.getElementById('btn-lead-ai-script');
+    const box = document.getElementById('lead-ai-script-box');
+    if (btn) { btn.disabled = true; btn.textContent = 'AI dang soan...'; }
+    if (box) { box.classList.remove('hidden'); box.textContent = 'Dang ket noi Gemini AI de tao kich ban 3 buoc...'; }
+
+    try {
+      const res = await fetch('/api/advice/sales-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ leadId: currentLeadId })
+      });
+      const data = await res.json();
+      if (data.ok && data.script) {
+        if (box) box.textContent = data.script;
+      } else {
+        if (box) box.textContent = 'Khong the tao kich ban AI: ' + (data.error || 'Loi mang');
+      }
+    } catch (err) {
+      if (box) box.textContent = 'Loi ket noi: ' + err.message;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'AI Soan Lai'; }
+    }
+  }
+
+  // Gan su kien modal
   document.getElementById('btn-close-lead-modal')?.addEventListener('click', closeLeadModal);
   document.getElementById('btn-save-lead')?.addEventListener('click', saveLeadUpdate);
   document.getElementById('btn-delete-lead')?.addEventListener('click', deleteLead);
   document.getElementById('btn-refresh-leads')?.addEventListener('click', loadLeads);
   document.getElementById('lead-filter-status')?.addEventListener('change', renderLeadsTable);
+  document.getElementById('btn-lead-ai-script')?.addEventListener('click', generateLeadSalesScript);
+  document.getElementById('btn-lead-convert-order')?.addEventListener('click', async () => {
+    if (currentLeadId) {
+      await quickConvertToOrder(currentLeadId);
+      closeLeadModal();
+    }
+  });
+
+  // Staff claim lead button inside modal
+  document.getElementById('btn-staff-claim-lead')?.addEventListener('click', async () => {
+    if (currentLeadId) {
+      await quickClaimLead(currentLeadId);
+      openLeadModal(currentLeadId); // refresh modal view
+    }
+  });
+
+  // Quick status selector buttons
+  document.querySelectorAll('.btn-lead-status').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setActiveStatusButton(btn.dataset.status);
+    });
+  });
+
   document.getElementById('lead-detail-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeLeadModal();
   });

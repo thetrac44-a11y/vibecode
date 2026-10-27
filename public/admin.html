@@ -317,40 +317,90 @@
 
       <!-- Modal chi tiet + xu ly Lead -->
       <div id="lead-detail-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5)">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
           <div class="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
-            <h3 class="font-bold text-slate-800">Chi tiet Yeu cau Tu van</h3>
+            <div>
+              <h3 class="font-bold text-slate-800">Chi tiet Yeu cau Tu van</h3>
+              <p class="text-xs text-slate-500">Cham soc khach hang tiem nang & ho tro chot don</p>
+            </div>
             <button id="btn-close-lead-modal" class="text-slate-400 hover:text-slate-700 font-bold text-xl leading-none">&times;</button>
           </div>
           <div class="p-6 space-y-4">
+            <!-- Thong tin khach hang -->
             <div id="lead-detail-info" class="text-sm text-slate-700 space-y-2"></div>
-            <hr class="border-slate-100" />
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Cap nhat trang thai</label>
-              <select id="lead-status-select" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400">
-                <option value="new">Moi / Chua lien he</option>
-                <option value="contacted">Da lien he</option>
-                <option value="converted">Da chuyen doi thanh don hang</option>
-                <option value="lost">Khong tiep can duoc</option>
-              </select>
+
+            <!-- Nut AI Soan Kich Ban Telesale -->
+            <div class="bg-brand-50 border border-brand-200 rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-xs font-bold text-brand-900 block">Tro ly Gemini AI Telesale</span>
+                  <span class="text-xs text-brand-700">Soan kich ban goi dien 3 buoc thuyet phuc khach nay</span>
+                </div>
+                <button id="btn-lead-ai-script" type="button" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition-colors">
+                  AI Soan Kich Ban
+                </button>
+              </div>
+              <div id="lead-ai-script-box" class="hidden bg-white rounded-lg p-3 border border-brand-100 text-xs text-slate-700 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto"></div>
             </div>
+
+            <!-- 1-Click Status Buttons -->
             <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Phan cong cho nhan vien</label>
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Cap nhat nhanh trang thai</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="lead-status-btn-group">
+                <button type="button" class="btn-lead-status px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:bg-amber-50 hover:border-amber-300 transition-all text-slate-700" data-status="new">
+                  Moi
+                </button>
+                <button type="button" class="btn-lead-status px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-300 transition-all text-slate-700" data-status="contacted">
+                  Da lien he
+                </button>
+                <button type="button" class="btn-lead-status px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 transition-all text-slate-700" data-status="converted">
+                  Da chot don
+                </button>
+                <button type="button" class="btn-lead-status px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 hover:bg-slate-100 transition-all text-slate-700" data-status="lost">
+                  Khong tiep can
+                </button>
+              </div>
+              <input type="hidden" id="lead-status-select" value="new" />
+            </div>
+
+            <!-- Phan cong nhan vien (Admin Only) -->
+            <div id="lead-assignee-admin-box">
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Phan cong nhan su phu trach (Admin)</label>
               <select id="lead-assignee-select" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400">
                 <option value="">Chua phan cong</option>
               </select>
             </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Ghi chu xu ly noi bo</label>
-              <textarea id="lead-notes-input" rows="3" placeholder="Noi dung ghi chu (thoi gian goi, ket qua trao doi...)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400 resize-none"></textarea>
+
+            <!-- View phu trach cho Staff (Staff View) -->
+            <div id="lead-assignee-staff-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-500 block">Nguoi phu trach:</span>
+                <span id="lead-staff-assignee-name" class="text-sm font-semibold text-slate-800">Chua phan cong</span>
+              </div>
+              <button id="btn-staff-claim-lead" type="button" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors">
+                Nhan Cham Soc Khach Nay
+              </button>
             </div>
-            <div class="flex gap-2 pt-1">
-              <button id="btn-save-lead" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors">
-                Luu Cap Nhat
+
+            <!-- Ghi chu xu ly noi bo -->
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Ghi chu cuoc goi & Tu van</label>
+              <textarea id="lead-notes-input" rows="3" placeholder="Noi dung ghi chu (thoi gian goi, ket qua trao doi, hen gio goi lai...)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400 resize-none"></textarea>
+            </div>
+
+            <!-- Nut hanh dong -->
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+              <button id="btn-lead-convert-order" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl py-2.5 text-sm transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                Chuyen Thanh Don Hang Chinh Thuc (Chot Don)
               </button>
-              <button id="btn-delete-lead" class="px-4 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl py-2.5 text-sm transition-colors">
-                Xoa Lead
-              </button>
+              <div class="flex gap-2">
+                <button id="btn-save-lead" type="button" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors">
+                  Luu Cap Nhat
+                </button>
+                <button id="btn-delete-lead" type="button" class="px-4 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl py-2.5 text-sm transition-colors">
+                  Xoa Lead
+                </button>
+              </div>
             </div>
             <p id="lead-save-msg" class="text-xs hidden mt-1"></p>
           </div>

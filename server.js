@@ -186,24 +186,119 @@ app.get('/api/leads', authenticateToken, requireRole(['admin', 'staff']), async 
   }
 });
 
-// PATCH /api/leads/:id — Admin/Staff cap nhat trang thai lead
+// PATCH /api/leads/:id — Admin/Staff cap nhat trang thai lead (Staff co RBAC nghiem ngat)
 app.patch('/api/leads/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, assignedTo, assignedToName, notes } = req.body || {};
+    const { status, assignedTo, assignedToName, notes, action } = req.body || {};
+
+    let targetAssignedTo = assignedTo;
+    let targetAssignedToName = assignedToName;
+
+    // RBAC: Staff khong duoc phan cong cho nguoi khac, chi duoc tu nhan lead ve minh
+    if (req.user.role === 'staff') {
+      if (action === 'claim' || assignedTo === req.user.id) {
+        targetAssignedTo = req.user.id;
+        targetAssignedToName = req.user.fullName || req.user.username;
+      } else {
+        // Giu nguyen nguoi phu trach cu, khong cho phep Staff doi sang user khac
+        targetAssignedTo = undefined;
+        targetAssignedToName = undefined;
+      }
+    }
 
     const validStatuses = ['new', 'contacted', 'converted', 'lost'];
     const updated = await db.updateLead({
       id,
       status: validStatuses.includes(status) ? status : undefined,
-      assignedTo: assignedTo || '',
-      assignedToName: assignedToName || 'Chua phan cong',
-      notes: String(notes || '')
+      assignedTo: targetAssignedTo,
+      assignedToName: targetAssignedToName,
+      notes: notes !== undefined ? String(notes || '') : undefined
     });
     return res.json({ ok: true, lead: updated });
   } catch (err) {
     console.error('PATCH /api/leads/:id error:', err.message);
     return res.status(500).json({ ok: false, error: 'Loi cap nhat trang thai tu van' });
+  }
+});
+
+// POST /api/leads/:id/convert-to-order — Chuyen lead thanh don hang thuc te trong OMS
+app.post('/api/leads/:id/convert-to-order', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const allLeads = await db.getAllLeads();
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead) {
+      return res.status(404).json({ ok: false, error: 'Khong tim thay lead tu van' });
+    }
+
+    const catalog = await db.getCatalogData();
+    const plans = catalog.plans || [];
+    let matchedPlan = plans.find(p => (p.name || '').toLowerCase() === (lead.recommended_plan || '').toLowerCase())
+                   || plans.find(p => p.id === lead.recommended_plan)
+                   || plans[0];
+
+    const orderId = 'ORD-2026-' + Math.floor(10000 + Math.random() * 90000);
+    const invoiceId = 'INV-2026-' + Math.floor(1000 + Math.random() * 9000);
+    const planMonthlyPrice = Number(matchedPlan.price_monthly || matchedPlan.priceMonthly || 199000);
+    const totalAmount = planMonthlyPrice * 12;
+
+    const bank = catalog.bankSettings || {};
+    const bankId = bank.bankId || 'MB';
+    const accountNo = bank.accountNo || '0988123456';
+    const accountName = bank.accountName || 'CONG TY TNHH HOSTING ADVISOR';
+    const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${totalAmount}&addInfo=${encodeURIComponent(orderId)}&accountName=${encodeURIComponent(accountName)}`;
+
+    const newOrder = await db.createOrder({
+      id: orderId,
+      invoiceId,
+      userId: null,
+      customerName: lead.customer_name,
+      phone: lead.phone,
+      email: lead.email || '',
+      planId: matchedPlan.id,
+      planName: matchedPlan.name,
+      billingCycleMonths: 12,
+      domainName: lead.desired_domain ? (lead.desired_domain + (lead.preferred_extension || '.vn')) : '',
+      domainYears: lead.desired_domain ? 1 : 0,
+      addons: [],
+      couponApplied: null,
+      hostingAmount: totalAmount,
+      domainAmount: 0,
+      addonsAmount: 0,
+      discountAmount: 0,
+      totalAmount,
+      paymentMethod: 'vietqr',
+      paymentStatus: 'unpaid',
+      status: 'pending_payment',
+      qrUrl,
+      serviceDetails: null,
+      assignedTo: req.user.id,
+      assignedToName: req.user.fullName || req.user.username,
+      notes: `Chuyen doi tu Lead tu van [${lead.id}]. Nhu cau: ${lead.site_type || 'Kinh doanh'}`,
+      timeline: [
+        {
+          time: new Date().toISOString(),
+          action: `Chuyen doi tu Lead tu van boi ${req.user.fullName || req.user.username}`,
+          by: req.user.fullName || req.user.username
+        }
+      ],
+      createdAt: new Date().toISOString()
+    });
+
+    // Cap nhat trang thai lead sang converted
+    await db.updateLead({
+      id: lead.id,
+      status: 'converted',
+      assignedTo: req.user.id,
+      assignedToName: req.user.fullName || req.user.username,
+      notes: (lead.notes ? lead.notes + ' | ' : '') + `Da tao don hang ${orderId}`
+    });
+
+    return res.json({ ok: true, order: newOrder });
+  } catch (err) {
+    console.error('convert-to-order error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Loi chuyen doi thanh don hang' });
   }
 });
 
@@ -1008,7 +1103,47 @@ Hãy viết đúng 3 đến 4 câu ngắn gọn bằng tiếng Việt chuyên ng
 
 app.post('/api/advice/sales-script', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
-    const { orderId } = req.body || {};
+    const { orderId, leadId } = req.body || {};
+
+    // 1. Truong hop tao kich ban cho Lead Tu Van
+    if (leadId) {
+      const allLeads = await db.getAllLeads();
+      const lead = allLeads.find((l) => l.id === leadId);
+      if (!lead) {
+        return res.status(404).json({ ok: false, error: 'Khong tim thay lead tu van.' });
+      }
+
+      const prompt = `Ban la Truong phong Tu van Ha tang Hosting & Ten mien tai HostingAdvisor Viet Nam.
+Hay soan kich ban goi dien Telesale ngan gon 3 buoc cho nhan vien tu van de cham soc va chot don cho khach hang:
+- Ten khach hang: ${lead.customer_name} (SDT: ${lead.phone})
+- Loai website: ${lead.site_type || 'Website kinh doanh'}
+- Luu luong du kien: ${lead.traffic || 'Chua xac dinh'}
+- Ngan sach khach hang: ${lead.budget ? Number(lead.budget).toLocaleString('vi-VN') + 'd/thang' : 'Toi uu'}
+- Goi he thong de xuat: Goi ${lead.recommended_plan || 'Pro Business'}
+- Ten mien khach quan tam: ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : 'Chua dang ky'}
+
+Yeu cau trinh bay dung 3 buoc ro rang, lich su, chuyen nghiep bang tieng Viet (tuyet doi KHONG dung icon hay emoji):
+Buoc 1 (Chao hoi & Nhan dien nhu cau): ...
+Buoc 2 (Giai thich loi ich ky thuat cua goi va uu dai kem theo): ...
+Buoc 3 (Kich hoat dat hang & Huong dan thanh toan VietQR de giu uu dai): ...`;
+
+      try {
+        const aiScript = await callGeminiText(prompt);
+        if (aiScript) {
+          return res.json({ ok: true, source: 'gemini', script: aiScript });
+        }
+      } catch (err) {
+        console.error('Gemini lead sales-script error:', err.message);
+      }
+
+      const fallbackScript = `Buoc 1 (Chao hoi & Nhan dien nhu cau): Xin chao anh/chi ${lead.customer_name}, em la nhan vien tu van ky thuat tu HostingAdvisor Viet Nam. Em thay anh/chi vua quan tam den giai phap ha tang cho ${lead.site_type || 'website'} va dang can nhan tu van goi ${lead.recommended_plan || 'Pro Business'}. Em goi dien de ho tro truc tiep cho anh/chi a.
+Buoc 2 (Giai thich gia tri ky thuat): Voi quy mo truy cap va muc tieu cua anh/chi, goi ${lead.recommended_plan || 'Pro Business'} su dung o cung NVMe toc do cao va RAM doc lap giup website tai rat nhanh va khong bao gio bi nghen. Neu anh/chi dang ky chu ky 24 hoac 36 thang, he thong se chiet khau them 10% den 20% chi phi va mien phi luon ten mien ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : '.vn/.com'} trong nam dau.
+Buoc 3 (Ho tro tao don & Kich hoat ngay): Em xin phep tao luon don hang giu uu dai giup anh/chi ngay bay gio. Sau khi tao xong, anh/chi chi can mo hoa don quet ma VietQR tren dien thoai la he thong tu dong cap phat IP Hosting trong vong 3 phut a.`;
+
+      return res.json({ ok: true, source: 'fallback', script: fallbackScript });
+    }
+
+    // 2. Truong hop tao kich ban cho Don Hang (Order)
     const order = await db.getOrderById(orderId);
 
     if (!order) {
