@@ -75,7 +75,11 @@ function readLocalDb() {
 }
 
 function writeLocalDb(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('[DB] writeLocalDb cảnh báo (môi trường Serverless/Read-only):', err.message);
+  }
 }
 
 // ============================================================================
@@ -282,9 +286,35 @@ function mapOrderToPg(o) {
 // ============================================================================
 
 let storedHashPasswordFn = (p) => p;
+let initPromise = null;
+
+async function ensureConnected() {
+  if (isSupabaseActive) return true;
+  if (!supabase) return false;
+  if (!initPromise) {
+    initPromise = _runInit().finally(() => {
+      if (!isSupabaseActive) initPromise = null;
+    });
+  }
+  try {
+    await initPromise;
+  } catch (e) {
+    console.error('[DB] ensureConnected error:', e.message);
+  }
+  return isSupabaseActive;
+}
 
 async function initDatabase(hashPasswordFn) {
   if (hashPasswordFn) storedHashPasswordFn = hashPasswordFn;
+  if (!initPromise) {
+    initPromise = _runInit().finally(() => {
+      if (!isSupabaseActive) initPromise = null;
+    });
+  }
+  return initPromise;
+}
+
+async function _runInit() {
   const local = readLocalDb();
 
   // Đảm bảo mật khẩu trong db.json được băm SHA-256
@@ -423,9 +453,7 @@ function getDbStatus() {
 // ============================================================================
 
 async function getCatalogData() {
-  if (supabase && !isSupabaseActive) {
-    await initDatabase();
-  }
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     return {
@@ -475,6 +503,7 @@ async function getCatalogData() {
 }
 
 async function getAllUsers() {
+  await ensureConnected();
   if (!isSupabaseActive) {
     return readLocalDb().users;
   }
@@ -483,6 +512,7 @@ async function getAllUsers() {
 }
 
 async function getUserByUsername(username) {
+  await ensureConnected();
   const clean = String(username || '').trim().toLowerCase();
   if (!isSupabaseActive) {
     const db = readLocalDb();
@@ -493,6 +523,7 @@ async function getUserByUsername(username) {
 }
 
 async function getUserById(id) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     return db.users.find((u) => u.id === id) || null;
@@ -502,6 +533,7 @@ async function getUserById(id) {
 }
 
 async function createUser(userObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     db.users.push(userObj);
@@ -518,6 +550,7 @@ async function createUser(userObj) {
 }
 
 async function deleteUserById(id) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     const idx = db.users.findIndex((u) => u.id === id);
@@ -533,6 +566,7 @@ async function deleteUserById(id) {
 }
 
 async function getCoupons() {
+  await ensureConnected();
   if (!isSupabaseActive) {
     return readLocalDb().coupons;
   }
@@ -548,6 +582,7 @@ async function getCoupons() {
 }
 
 async function upsertCoupon(couponObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     const idx = db.coupons.findIndex((c) => String(c.code).toUpperCase() === couponObj.code);
@@ -570,6 +605,7 @@ async function upsertCoupon(couponObj) {
 }
 
 async function deleteCouponByCode(code) {
+  await ensureConnected();
   const clean = String(code || '').trim().toUpperCase();
   if (!isSupabaseActive) {
     const db = readLocalDb();
@@ -584,6 +620,7 @@ async function deleteCouponByCode(code) {
 }
 
 async function updateBankSettings(settingsObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     db.settings = settingsObj;
@@ -602,6 +639,7 @@ async function updateBankSettings(settingsObj) {
 }
 
 async function getAllOrders() {
+  await ensureConnected();
   if (!isSupabaseActive) {
     return readLocalDb().orders;
   }
@@ -610,6 +648,7 @@ async function getAllOrders() {
 }
 
 async function getOrderById(id) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     return db.orders.find((o) => o.id === id) || null;
@@ -619,6 +658,7 @@ async function getOrderById(id) {
 }
 
 async function createOrder(orderObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     db.orders.unshift(orderObj);
@@ -635,6 +675,7 @@ async function createOrder(orderObj) {
 }
 
 async function updateOrder(orderObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     const idx = db.orders.findIndex((o) => o.id === orderObj.id);
@@ -654,6 +695,7 @@ async function updateOrder(orderObj) {
 }
 
 async function deleteOrderById(id) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     const idx = db.orders.findIndex((o) => o.id === id);
@@ -669,6 +711,7 @@ async function deleteOrderById(id) {
 }
 
 async function getReviews() {
+  await ensureConnected();
   if (!isSupabaseActive) {
     return readLocalDb().reviews;
   }
@@ -710,6 +753,7 @@ async function getReviews() {
 }
 
 async function createReview(reviewObj) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     db.reviews.unshift(reviewObj);
@@ -758,6 +802,7 @@ async function createReview(reviewObj) {
 }
 
 async function deleteReviewById(id) {
+  await ensureConnected();
   if (!isSupabaseActive) {
     const db = readLocalDb();
     const idx = db.reviews.findIndex((r) => r.id === id);
@@ -837,6 +882,7 @@ function mapLeadToPg(l) {
 }
 
 async function createLead(leadObj) {
+  await ensureConnected();
   if (isSupabaseActive) {
     try {
       const pgRow = mapLeadToPg(leadObj);
@@ -855,6 +901,7 @@ async function createLead(leadObj) {
 }
 
 async function getAllLeads() {
+  await ensureConnected();
   if (isSupabaseActive) {
     try {
       const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -871,6 +918,7 @@ async function getAllLeads() {
 }
 
 async function updateLead(leadObj) {
+  await ensureConnected();
   if (isSupabaseActive) {
     try {
       // First fetch the existing lead to preserve needs object fields
@@ -900,6 +948,7 @@ async function updateLead(leadObj) {
 }
 
 async function deleteLeadById(id) {
+  await ensureConnected();
   if (isSupabaseActive) {
     try {
       await supabase.from('leads').delete().eq('id', id);
@@ -915,6 +964,7 @@ async function deleteLeadById(id) {
 }
 
 module.exports = {
+  ensureConnected,
   initDatabase,
   getDbStatus,
   getCatalogData,

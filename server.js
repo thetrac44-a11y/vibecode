@@ -76,6 +76,16 @@ db.initDatabase(hashPassword).catch((err) => {
   console.error('[DB] Lỗi khởi tạo Database:', err.message);
 });
 
+// Middleware đảm bảo CSDL Supabase PostgreSQL đã sẵn sàng cho Serverless (Vercel)
+app.use(async (req, res, next) => {
+  try {
+    await db.ensureConnected();
+  } catch (err) {
+    // bỏ qua nếu đang chạy local JSON fallback
+  }
+  next();
+});
+
 // ============================================================================
 // 2. MIDDLEWARE XÁC THỰC JWT & PHÂN QUYỀN RBAC (3 ROLES)
 // ============================================================================
