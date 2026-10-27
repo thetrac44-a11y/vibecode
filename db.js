@@ -354,17 +354,18 @@ async function _runInit() {
 
     // Tự động Seed dữ liệu gốc từ db.json lên Supabase nếu bảng trên Supabase đang trống
     if (!settingsRows || settingsRows.length === 0) {
-      const { error: upsertErr } = await supabase.from('settings').upsert({
-        id: 1,
-        bank_id: local.settings.bankId,
-        account_no: local.settings.accountNo,
-        account_name: local.settings.accountName
-      });
-      if (upsertErr) {
-        isSupabaseActive = false;
-        supabaseStatusMessage = `Bảng trên Supabase đang bật RLS chặn ghi với Publishable Key (${upsertErr.message}). Hãy chạy lại supabase_schema.sql để tắt RLS hoặc dùng Secret Key (sb_secret_...).`;
-        console.warn('[DB] ' + supabaseStatusMessage);
-        return;
+      try {
+        const { error: upsertErr } = await supabase.from('settings').upsert({
+          id: 1,
+          bank_id: local.settings.bankId,
+          account_no: local.settings.accountNo,
+          account_name: local.settings.accountName
+        });
+        if (upsertErr) {
+          console.warn('[DB] Bỏ qua seed settings do quyền RLS:', upsertErr.message);
+        }
+      } catch (seedErr) {
+        console.warn('[DB] Ngoại lệ khi seed settings:', seedErr.message);
       }
     }
 
