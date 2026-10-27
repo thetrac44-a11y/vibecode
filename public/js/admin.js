@@ -1,4 +1,4 @@
-/**
+﻿/**
  * public/js/admin.js — BỘ KHUNG DỰ ÁN (PROJECT SKELETON / STARTER KIT)
  *
  * [ĐÃ CÓ SẴN TRONG KHUNG CỦA LEADER]:
@@ -155,7 +155,7 @@ function renderBankSettingsForm() {
 // =========================================================
 
 function updateKPIs() {
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // Duyệt qua mảng allOrders để tính toán 4 chỉ số hiển thị lên Dashboard:
   // 1. #kpi-paid-revenue: Tổng tiền các đơn đã thanh toán (status === 'completed' || paymentStatus === 'paid')
   // 2. #kpi-pending-revenue: Tổng tiền các đơn đang chờ duyệt
@@ -168,7 +168,7 @@ function renderOrdersTable() {
   const tbody = document.getElementById('admin-orders-tbody');
   if (!tbody) return;
 
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // 1. Lọc mảng allOrders theo ô tìm kiếm (#filter-search), trạng thái (#filter-status) và nhân sự (#filter-assignee)
   // 2. Render từng dòng đơn hàng gồm: Mã đơn, Khách hàng, Gói & Tên miền, Add-ons & Coupon, Tổng tiền, Trạng thái, Phụ trách và nút "Chi tiết & Duyệt"
   tbody.innerHTML = `
@@ -181,14 +181,14 @@ function renderOrdersTable() {
 }
 
 function openOrderDetailModal(orderId) {
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // Mở modal #order-detail-modal, hiển thị thông tin đơn hàng, Timeline vết xử lý,
   // nút "Xác Nhận Đã Nhận Tiền & Kích Hoạt Dịch Vụ" (gọi PATCH /api/orders/:id)
   // và nút "AI Soạn Kịch Bản Gọi Điện" (gọi POST /api/advice/sales-script).
 }
 
 function exportOrdersToCSV() {
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // Xuất danh sách đơn hàng ra file CSV có mã BOM UTF-8 ('\uFEFF') để mở bằng Microsoft Excel không bị lỗi font tiếng Việt.
   alert('[TODO - Nhiệm vụ 3]: Hãy hoàn thiện hàm exportOrdersToCSV() trong public/js/admin.js');
 }
@@ -237,3 +237,4 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshBtn?.addEventListener('click', () => loadStaffAndOrders());
   exportBtn?.addEventListener('click', exportOrdersToCSV);
 });
+

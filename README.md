@@ -1,6 +1,8 @@
-# HostingAdvisor OMS (v3.3 E-Commerce) — Bộ Khung Khởi Tạo Dự Án (Team Starter Kit)
+# HostingAdvisor OMS (v3.3 E-Commerce) — Bộ Khung Khởi Tạo Dự Án (Team 3 Người)
 
-Đây là **Bộ Khung Dự Án Chuẩn (Project Skeleton)** do Team Leader thiết lập sẵn nhằm thống nhất kiến trúc thư mục, cấu trúc cơ sở dữ liệu **Supabase PostgreSQL**, giao diện HTML/Tailwind CSS và định nghĩa tên hàm/API cho toàn đội.
+Đây là **Bộ Khung Dự Án Chuẩn (Project Skeleton)** do **Team Leader** thiết lập sẵn nhằm thống nhất kiến trúc thư mục, cơ sở dữ liệu **Cloud SQL: Supabase PostgreSQL**, hệ thống bảo mật phân quyền **RBAC (JWT + SHA-256)** và dữ liệu danh mục gốc.
+
+Dự án được thiết kế tách biệt hoàn toàn thành **02 Cổng độc lập (`index.html` / `app.js` và `admin.html` / `admin.js`)**, giúp **2 thành viên trong đội code song song trên 2 file khác nhau mà không bao giờ bị xung đột (`git conflict`)**.
 
 ---
 
@@ -16,22 +18,22 @@
    npm install
    ```
 3. **Tạo file cấu hình môi trường `.env`:**
-   - Sao chép file `.env.example` thành `.env` (Nhận `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY` từ Leader trong nhóm chat nội bộ).
+   - Sao chép file `.env.example` thành `.env` (Nhận `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY` từ Leader).
 4. **Khởi động Server:**
    ```bash
    npm start
    ```
-   - Cổng Mua sắm Khách hàng: `http://localhost:3000/index.html`
-   - Cổng Quản trị Đơn hàng OMS: `http://localhost:3000/admin.html` (Tài khoản Admin mặc định: `admin` / `admin123@password`)
+   - **Cổng Mua sắm Khách hàng (User Portal):** `http://localhost:3000/index.html`
+   - **Cổng Quản trị Đơn hàng (Admin OMS Portal):** `http://localhost:3000/admin.html` (Tài khoản Admin gốc: `admin` / `admin123@password`)
 
 ---
 
-## 2. Những phần Leader đã dựng sẵn trong Bộ Khung (Không tự ý đổi tên ID / File)
+## 2. Phân Công Nhiệm Vụ Cho Đội (Leader + 02 Thành Viên)
 
-- **`db.js` & `supabase_schema.sql`:** Tầng kết nối tự động tới **Cloud SQL: Supabase PostgreSQL** (kèm cơ chế tự động Fallback về `db.json` nếu chạy offline). Các thành viên chỉ cần gọi các hàm có sẵn như `db.getCatalogData()`, `db.createOrder()`, `db.getAllOrders()`, `db.getReviews()`...
-- **`public/js/plans.js`, `domains.js`, `addons.js`, `faq.js`, `config.js`:** Dữ liệu gốc chuẩn của 6 gói Hosting/VPS, 4 đuôi tên miền, 3 dịch vụ mua kèm và câu hỏi FAQ.
-- **`public/index.html` & `public/admin.html`:** Khung giao diện chuẩn Responsive cùng toàn bộ `id="..."` đã khớp sẵn với file JS.
-- **Hệ thống Xác thực & Phân quyền RBAC (`server.js`):** Đã tích hợp sẵn mã hóa mật khẩu băm một chiều `SHA-256 + Salt` và Middleware kiểm tra JWT Token (`admin`, `staff`, `customer`).
+### Vai trò 0: Team Leader (Đã hoàn thành sẵn trong Khung)
+- Thiết kế kiến trúc tổng thể & CSDL **Supabase PostgreSQL** (`supabase_schema.sql`, `db.js`, `db.json`).
+- Xây dựng hệ thống xác thực **JWT & Phân quyền RBAC 3 cấp** (`admin`, `staff`, `customer`), mã hóa mật khẩu một chiều `SHA-256 + Salt`.
+- Chuẩn hóa bộ dữ liệu gốc (`plans.js`, `domains.js`, `addons.js`, `faq.js`, `config.js`) và khung giao diện chuẩn Responsive.
 
 ---
 
@@ -74,11 +76,35 @@ Mỗi thành viên tạo một nhánh Git riêng theo cú pháp `git checkout -b
 
 ---
 
-## 4. Quy trình Nộp code (Pull Request) cho Leader duyệt
+### Thành Viên 2: Phụ trách Cổng Quản Trị Đơn Hàng OMS (Admin Portal & AI Telesale)
+- **Nhánh làm việc Git:**
+  ```bash
+  git checkout -b feat/admin-portal
+  ```
+- **File làm việc chính:** `public/js/admin.js`, `public/admin.html` và phần API Admin trong `server.js` (Tìm từ khóa `TODO [ADMIN PORTAL]`).
+- **Danh sách các hạng mục cần hoàn thành:**
+  1. **Thống kê 4 Chỉ số KPI Doanh thu (`updateKPIs` trong `public/js/admin.js`):**
+     - Tính tự động theo thời gian thực: (1) Doanh thu thực nhận (`paid`), (2) Doanh thu chờ duyệt, (3) Số đơn cần duyệt tiền và (4) Tổng số đơn hàng trên hệ thống.
+  2. **Bảng Quản lý Đơn hàng & Bộ lọc Đa chiều (`renderOrdersTable` & `getFilteredOrders` trong `public/js/admin.js`):**
+     - Hiển thị danh sách đơn hàng từ Supabase và lọc tức thì theo từ khóa (Mã đơn, Tên khách, SĐT, Tên miền), lọc theo Trạng thái đơn và lọc theo Nhân viên phụ trách.
+  3. **Nghiệp vụ Duyệt thanh toán VietQR, Cấp phát IP Hosting & Phân công nhân sự (`openOrderDetailModal` trong `public/js/admin.js` & `PATCH /api/orders/:id` trong `server.js`):**
+     - Khi bấm **"Xác Nhận Đã Nhận Tiền & Kích Hoạt Dịch Vụ"**, tự động chuyển trạng thái đơn sang `completed` (`paid`), cấp phát địa chỉ IP Hosting (`103.221.220.xxx`) + cặp Nameservers và ghi nhật ký vào mảng `timeline`.
+     - Cho phép Admin phân công đơn hàng cho nhân viên `Staff` và ghi chú nội bộ.
+  4. **AI Trợ lý Telesale 3 Bước & Xuất Báo cáo Tài chính CSV (`POST /api/advice/sales-script` & `exportOrdersToCSV`):**
+     - Kết nối Gemini AI phân tích gói cước/tên miền/add-ons của từng đơn hàng để soạn **Kịch bản gọi điện Telesale 3 bước** cho nhân viên tư vấn.
+     - Xuất danh sách đơn hàng ra file báo cáo **CSV (chuẩn UTF-8 BOM)** mở trực tiếp trên Microsoft Excel.
+  5. **Quản trị Hệ thống dành cho Admin (`renderStaffManagementList`, `renderCouponsManagementList`, `renderReviewsManagementList`):**
+     - Quản lý tạo/xóa tài khoản nhân viên `Staff`, tạo/xóa mã giảm giá `Coupon`, cập nhật số tài khoản ngân hàng VietQR và kiểm duyệt xóa đánh giá spam.
 
-```bash
-git add .
-git commit -m "Hoan thanh nhiem vu X: Mo ta ngan gon"
-git push -u origin feat/task-X-...
-```
-Sau khi push nhánh lên GitHub, tạo **Pull Request (PR)** vào nhánh `main` để Leader kiểm tra và ghép code.
+---
+
+## 3. Quy trình Gộp Code (Git Merge) Không Xung Đột
+
+- **Thành viên 1** chỉ sửa trong `public/js/app.js`, `public/index.html` và khu vực `// === KHU VỰC USER PORTAL ===` trong `server.js`.
+- **Thành viên 2** chỉ sửa trong `public/js/admin.js`, `public/admin.html` và khu vực `// === KHU VỰC ADMIN PORTAL ===` trong `server.js`.
+- Sau khi hoàn thành, mỗi người push nhánh của mình lên GitHub và tạo **Pull Request** vào nhánh `main` để Leader kiểm tra và gộp code:
+  ```bash
+  git add .
+  git commit -m "Hoan thanh module duoc phan cong"
+  git push -u origin HEAD
+  ```

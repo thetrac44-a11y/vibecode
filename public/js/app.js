@@ -1,4 +1,4 @@
-/**
+﻿/**
  * public/js/app.js — BỘ KHUNG DỰ ÁN (PROJECT SKELETON / STARTER KIT)
  *
  * [ĐÃ CÓ SẴN TRONG KHUNG CỦA LEADER]:
@@ -49,7 +49,7 @@ function escapeHtml(str) {
 // =========================================================
 
 function recommendPlans(needs) {
-  // TODO [NHIỆM VỤ 1 - THÀNH VIÊN 1]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Xây dựng thuật toán chấm điểm (Scoring) cho 6 gói trong window.PLANS_DATA dựa trên:
   // - needs.siteType ('blog', 'company', 'ecommerce', 'webapp')
   // - needs.traffic ('low', 'medium', 'high', 'very_high')
@@ -61,7 +61,7 @@ function recommendPlans(needs) {
 }
 
 async function getAIAdvice(needs, top3Plans) {
-  // TODO [NHIỆM VỤ 1 - THÀNH VIÊN 1]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Gọi API POST /api/advice để lấy lời giải thích từ Gemini AI cho gói top3Plans[0],
   // kèm cơ chế Fallback tự động khi mất kết nối mạng.
   const best = top3Plans[0] || { id: 'business', name: 'Business' };
@@ -136,7 +136,7 @@ function renderComparisonTable(planIds = ['business', 'basic', 'shop-pro'], best
   const bodyEl = document.getElementById('comparison-tbody');
   if (!headEl || !bodyEl) return;
 
-  // TODO [NHIỆM VỤ 1 - THÀNH VIÊN 1]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Hoàn thiện bảng so sánh thông số kỹ thuật trực quan giữa 3 gói (Giá/tháng, Dung lượng, Băng thông,
   // Lượt truy cập khuyến nghị, Ưu đãi tên miền, Đối tượng phù hợp & Nút đặt mua).
   headEl.innerHTML = `
@@ -225,7 +225,7 @@ function renderCatalog(filterType = 'all') {
 // =========================================================
 
 function calculateCartTotal(planPriceMonthly, cycleMonths, domainExtension, isPlanFreeDomain, selectedAddons, discountAmount, desiredDomain = '', orderCode = 'TAMTINH') {
-  // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Tính tiền Hosting theo chu kỳ 12 / 24 (-10%) / 36 (-20%) tháng
   // 2. Tính tiền Tên miền (0đ nếu isPlanFreeDomain === true)
   // 3. Cộng tiền các dịch vụ Add-ons được tích chọn
@@ -280,7 +280,7 @@ function initCheckoutModal() {
   });
 
   createOrderBtn?.addEventListener('click', async () => {
-    // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+    // TODO [USER PORTAL - THÀNH VIÊN 1]:
     // Gửi POST /api/orders kèm thông tin người mua, gói cước, chu kỳ, tên miền, add-ons, coupon.
     // Lưu đồng thời vào localStorage ("leads") và hiển thị nút xác nhận thanh toán + nút xem Hóa đơn điện tử.
     if (statusMsg) {
@@ -292,7 +292,7 @@ function initCheckoutModal() {
 }
 
 function openInvoiceModal(order) {
-  // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Render chi tiết Hóa đơn điện tử (E-Invoice) vào #invoice-content-area kèm dấu mộc PAID / UNPAID và nút window.print().
 }
 
@@ -304,7 +304,7 @@ function renderCustomerReviews(reviews) {
   const container = document.getElementById('reviews-list-container');
   if (!container) return;
 
-  // TODO [NHIỆM VỤ 4 - THÀNH VIÊN 4]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Tính điểm đánh giá trung bình và tổng số đánh giá hiển thị lên #reviews-summary-bar
   // 2. Chia phân trang cố định 3 đánh giá / trang (kèm nút Trang trước / Số trang / Trang sau tại #reviews-pagination-bar)
   container.innerHTML = `
@@ -318,7 +318,7 @@ function renderCustomerReviews(reviews) {
 }
 
 function initCustomerReviewsForm() {
-  // TODO [NHIỆM VỤ 4 - THÀNH VIÊN 4]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Bắt sự kiện submit của #customer-review-form, gửi POST /api/reviews và gọi lại renderCustomerReviews().
 }
 
@@ -326,7 +326,7 @@ function renderFAQAccordion() {
   const container = document.getElementById('faq-accordion');
   if (!container) return;
 
-  // TODO [NHIỆM VỤ 4 - THÀNH VIÊN 4]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Render danh sách câu hỏi thường gặp từ window.FAQ_DATA và xử lý sự kiện đóng/mở Accordion.
   container.innerHTML = `
     <div class="p-6 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200">
@@ -509,3 +509,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrdersAndInvoiceModals();
   initCustomerReviewsForm();
 });
+

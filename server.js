@@ -1,4 +1,4 @@
-/**
+﻿/**
  * server.js — BỘ KHUNG DỰ ÁN (PROJECT SKELETON / STARTER KIT)
  * Hệ thống Tư vấn Hosting/Domain AI & Quản trị Đơn hàng Thương mại Điện tử (OMS)
  *
@@ -202,7 +202,7 @@ async function callGeminiText(promptText) {
 }
 
 app.post('/api/advice', async (req, res) => {
-  // TODO [NHIỆM VỤ 1 - THÀNH VIÊN 1]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Lấy các tham số từ req.body: websiteTypeLabel, trafficLabel, budgetLabel, recommendedPlanName, recommendedPlanPrice, domainQuery
   // 2. Xây dựng câu lệnh Prompt đóng vai Chuyên gia Hạ tầng Web giải thích ngắn gọn 3-4 câu vì sao gói được chọn là tối ưu + khuyên chu kỳ 24/36 tháng + tư vấn đuôi tên miền .vn/.com.
   // 3. Gọi hàm callGeminiText(prompt) để lấy phản hồi từ Gemini AI.
@@ -220,7 +220,7 @@ app.post('/api/advice', async (req, res) => {
 // ============================================================================
 
 app.post('/api/coupons/validate', async (req, res) => {
-  // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Lấy { code, rawTotal, subTotal } từ req.body
   // 2. Tìm mã giảm giá trong danh sách await db.getCoupons()
   // 3. Nếu type === 'percent' thì tính % giảm; nếu type === 'fixed' thì trừ số tiền cố định
@@ -232,7 +232,7 @@ app.post('/api/coupons/validate', async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-  // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Kiểm tra Họ tên (customerName) và Số điện thoại (phone) người mua
   // 2. Tính tiền Gói Hosting theo chu kỳ 12/24/36 tháng (giảm 10% cho 24T, 20% cho 36T)
   // 3. Tính tiền Tên miền (miễn phí nếu plan.freeDomain === true) và tiền các dịch vụ mua kèm (Add-ons)
@@ -245,7 +245,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 app.post('/api/orders/:id/confirm-payment', async (req, res) => {
-  // TODO [NHIỆM VỤ 2 - THÀNH VIÊN 2]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Tìm đơn hàng theo req.params.id qua db.getOrderById(id), cập nhật trạng thái thanh toán,
   // cấp phát IP Hosting mẫu (103.221.220.xxx) và lưu lại qua await db.updateOrder(order)
   return res.status(400).json({
@@ -264,7 +264,7 @@ app.get('/api/orders', authenticateToken, requireRole(['admin', 'staff']), async
 });
 
 app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // 1. Tìm đơn hàng qua await db.getOrderById(req.params.id)
   // 2. Cho phép Admin phân công nhân sự phụ trách (assignedTo)
   // 3. Khi duyệt trạng thái status === 'completed', đổi paymentStatus = 'paid' và sinh thông số IP Hosting + DNS
@@ -282,7 +282,7 @@ app.delete('/api/orders/:id', authenticateToken, requireRole(['admin']), async (
 });
 
 app.post('/api/advice/sales-script', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
-  // TODO [NHIỆM VỤ 3 - THÀNH VIÊN 3]:
+  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
   // Lấy thông tin đơn hàng theo orderId, tạo Prompt gửi Gemini AI để sinh Kịch bản gọi điện Telesale 3 bước
   // (Bước 1: Chào hỏi & Xác nhận đơn -> Bước 2: Tư vấn kỹ thuật & Thanh toán -> Bước 3: Up-sell Backup/Tên miền)
   return res.json({
@@ -353,7 +353,7 @@ app.get('/api/reviews', async (req, res) => {
 });
 
 app.post('/api/reviews', async (req, res) => {
-  // TODO [NHIỆM VỤ 4 - THÀNH VIÊN 4]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // 1. Kiểm tra hợp lệ: Họ tên (customerName) và Nội dung nhận xét (comment) không được để trống
   // 2. Tạo object đánh giá mới và lưu lên Supabase qua await db.createReview(...)
   // 3. Trả về { ok: true, review }
@@ -369,7 +369,7 @@ app.delete('/api/admin/reviews/:id', authenticateToken, requireRole(['admin']), 
 });
 
 app.get('/api/orders/my-orders', async (req, res) => {
-  // TODO [NHIỆM VỤ 4 - THÀNH VIÊN 4]:
+  // TODO [USER PORTAL - THÀNH VIÊN 1]:
   // Lọc danh sách đơn hàng từ await db.getAllOrders() theo user đang đăng nhập HOẶC theo số điện thoại req.query.phone
   return res.json({ ok: true, orders: [] });
 });
@@ -377,3 +377,4 @@ app.get('/api/orders/my-orders', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`[STARTER KIT] Server đang chạy tại: http://localhost:${PORT}`);
 });
+
