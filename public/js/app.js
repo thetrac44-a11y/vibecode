@@ -2039,10 +2039,36 @@ async function loadDynamicCatalog() {
     if (Array.isArray(data.reviews)) {
       renderCustomerReviews(data.reviews);
     }
+    if (Array.isArray(data.coupons)) {
+      window.COUPONS_DATA = data.coupons;
+      renderLiveCoupons(data.coupons);
+    }
     renderCatalog('all');
     renderComparisonTable(['business', 'basic', 'shop-pro'], 'business');
   } catch (err) {
     console.warn('Sử dụng danh mục mặc định:', err.message);
+  }
+}
+
+function renderLiveCoupons(coupons) {
+  const banner = document.getElementById('live-coupons-banner');
+  const hints = document.getElementById('checkout-coupon-hints');
+  if (!Array.isArray(coupons) || coupons.length === 0) {
+    if (banner) banner.textContent = 'Hiện chưa có mã ưu đãi công khai.';
+    if (hints) hints.innerHTML = 'Không có mã ưu đãi';
+    return;
+  }
+
+  if (banner) {
+    const html = 'Mã ưu đãi: ' + coupons.map(c => {
+      const valText = c.type === 'percent' ? `Giảm ${c.value}%` : `Giảm ${Number(c.value).toLocaleString('vi-VN')}đ`;
+      return `<strong class="bg-white px-2 py-0.5 rounded border border-brand-300 font-bold">${c.code}</strong> (${valText})`;
+    }).join(' | ');
+    banner.innerHTML = html;
+  }
+
+  if (hints) {
+    hints.innerHTML = 'Thử nhập ' + coupons.map(c => `<code class="text-brand-700 font-bold bg-white px-1.5 py-0.5 rounded border border-brand-300 cursor-pointer" onclick="const el=document.getElementById('checkout-coupon-input'); if(el){el.value='${c.code}';}" title="Nhấp để áp dụng mã">${c.code}</code>`).join(' hoặc ');
   }
 }
 

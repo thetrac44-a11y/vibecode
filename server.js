@@ -143,6 +143,7 @@ app.get('/api/catalog', async (req, res) => {
       plans: catalog.plans,
       domain_pricing: catalog.domain_pricing,
       addons: catalog.addons,
+      coupons: catalog.coupons,
       reviews
     });
   } catch (err) {
