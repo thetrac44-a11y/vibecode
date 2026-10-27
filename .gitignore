@@ -1,11 +1,7 @@
-# Khóa cấu hình & API Key (Tuyệt đối không commit lên Git)
-/config.js
+node_modules/
 .env
 .env.local
-
-# Hệ điều hành & Editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-node_modules/

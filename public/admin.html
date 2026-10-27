@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HostingAdvisor OMS - Cổng Quản Trị Đơn Hàng &amp; Doanh Thu</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ==========================================
+       TOPBAR QUẢN TRỊ
+       ========================================== -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg">
+          H
+        </div>
+        <div>
+          <span class="font-bold text-base sm:text-lg tracking-tight">HostingAdvisor OMS</span>
+          <span
+            id="db-engine-badge"
+            class="hidden sm:inline-block ml-2 text-xs font-semibold bg-slate-800 text-brand-300 px-2.5 py-0.5 rounded-full border border-slate-700"
+          >
+            Hệ Thống Quản Trị Đơn Hàng &amp; Doanh Thu
+          </span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm whitespace-nowrap">
+        <div id="admin-user-bar" class="hidden items-center gap-2">
+          <span id="admin-user-name" class="font-semibold text-slate-200"></span>
+          <span id="admin-role-badge" class="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full"></span>
+          <button
+            type="button"
+            id="btn-admin-refresh"
+            class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors"
+          >
+            Làm mới
+          </button>
+          <button
+            type="button"
+            id="btn-admin-logout"
+            class="py-1.5 px-3 rounded-lg bg-red-600/90 hover:bg-red-600 text-white font-semibold transition-colors"
+          >
+            Đăng xuất
+          </button>
+        </div>
+
+        <a
+          href="index.html"
+          class="py-1.5 px-3.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold transition-colors"
+        >
+          Về Cổng Mua Sắm
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ==========================================
+         MÀN HÌNH 1: ĐĂNG NHẬP QUẢN TRỊ (ADMIN / STAFF)
+         ========================================== -->
+    <section id="admin-login-screen" class="max-w-md mx-auto my-8">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8">
+        <span class="inline-block text-xs font-bold uppercase tracking-wider text-brand-700 bg-brand-50 px-3 py-1 rounded-full border border-brand-200 mb-2">
+          Xác thực Phân quyền RBAC
+        </span>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+          Đăng Nhập Cổng Quản Trị OMS
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mb-5">
+          Chỉ tài khoản cấp <strong>Admin</strong> và <strong>Staff</strong> đã được cấp phép mới có quyền truy cập hệ thống quản lý đơn hàng.
+        </p>
+
+        <form id="admin-login-form" novalidate class="space-y-4">
+          <div>
+            <label for="admin-username" class="block text-xs font-semibold text-slate-700 mb-1">Tên đăng nhập <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="admin-username"
+              placeholder="admin hoặc staff"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="admin-password" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu <span class="text-red-500">*</span></label>
+            <input
+              type="password"
+              id="admin-password"
+              placeholder="Nhập mật khẩu"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <p id="admin-login-error" class="hidden text-xs font-medium text-red-600" role="alert"></p>
+          <button
+            type="submit"
+            id="btn-submit-admin-login"
+            class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-all shadow-sm"
+          >
+            Đăng Nhập Quản Trị
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         MÀN HÌNH 2: DASHBOARD QUẢN TRỊ ĐƠN HÀNG & DOANH THU
+         ========================================== -->
+    <section id="admin-dashboard-screen" class="hidden space-y-6">
+
+      <!-- 4 Thẻ Thống Kê KPI Doanh Thu -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-700">1. Doanh Thu Thực Nhận</div>
+          <div id="kpi-paid-revenue" class="text-2xl font-extrabold text-slate-900 mt-2">0đ</div>
+          <p class="text-xs text-slate-500 mt-1">Các đơn đã duyệt tiền &amp; kích hoạt</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+          <div class="text-xs font-bold uppercase tracking-wider text-amber-700">2. Doanh Thu Chờ Duyệt</div>
+          <div id="kpi-pending-revenue" class="text-2xl font-extrabold text-slate-900 mt-2">0đ</div>
+          <p class="text-xs text-slate-500 mt-1">Đơn khách đang chuyển khoản VietQR</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+          <div class="text-xs font-bold uppercase tracking-wider text-brand-700">3. Đơn Cần Duyệt Tiền</div>
+          <div id="kpi-pending-count" class="text-2xl font-extrabold text-brand-600 mt-2">0</div>
+          <p class="text-xs text-slate-500 mt-1">Ưu tiên kiểm tra sao kê ngân hàng</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-600">4. Tổng Đơn Hàng</div>
+          <div id="kpi-total-orders" class="text-2xl font-extrabold text-slate-900 mt-2">0</div>
+          <p class="text-xs text-slate-500 mt-1">Toàn bộ đơn hàng trên hệ thống</p>
+        </div>
+      </div>
+
+      <!-- Khung Bộ Lọc & Bảng Quản Lý Đơn Hàng -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 sm:p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">
+              Danh Sách Đơn Hàng Thương Mại Điện Tử
+            </h2>
+            <p id="admin-filter-summary" class="text-xs text-slate-500 mt-0.5">
+              Bấm vào nút "Chi tiết &amp; Duyệt" trên từng đơn để xác nhận tiền VietQR, cấp IP Hosting hoặc dùng AI soạn kịch bản Telesale.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <input
+              type="text"
+              id="filter-search"
+              placeholder="Tìm Mã đơn, Tên, SĐT, Tên miền..."
+              class="rounded-xl border border-slate-300 px-3.5 py-2 text-xs sm:text-sm w-full sm:w-60 focus:border-brand-600 focus:outline-none"
+            />
+
+            <select
+              id="filter-status"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="paid_processing">Chờ duyệt tiền (Khách đã CK)</option>
+              <option value="pending_payment">Chờ khách thanh toán</option>
+              <option value="completed">Đã kích hoạt (Completed)</option>
+              <option value="cancelled">Đã hủy (Cancelled)</option>
+            </select>
+
+            <select
+              id="filter-assignee"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+            >
+              <option value="all">Tất cả người phụ trách</option>
+              <option value="unassigned">Chưa phân công</option>
+            </select>
+
+            <button
+              type="button"
+              id="btn-export-csv"
+              class="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap"
+            >
+              Xuất Báo Cáo CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Bảng dữ liệu đơn hàng -->
+        <div class="table-scroll overflow-x-auto pt-4">
+          <table class="w-full min-w-[920px] border-collapse text-left text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                <th class="p-3.5 font-semibold">Mã đơn / Thời gian</th>
+                <th class="p-3.5 font-semibold">Khách hàng</th>
+                <th class="p-3.5 font-semibold">Gói &amp; Tên miền</th>
+                <th class="p-3.5 font-semibold">Add-ons &amp; Coupon</th>
+                <th class="p-3.5 font-semibold">Tổng tiền</th>
+                <th class="p-3.5 font-semibold">Trạng thái</th>
+                <th class="p-3.5 font-semibold">Phụ trách</th>
+                <th class="p-3.5 font-semibold text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-tbody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           KHU VỰC QUẢN TRỊ HỆ THỐNG DÀNH RIÊNG CHO ADMIN
+           (Quản lý Nhân sự Staff, Mã Giảm Giá & Cấu Hình Ngân Hàng VietQR)
+           ========================================== -->
+      <div id="admin-system-panel" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- 1. Quản lý Tài khoản Nhân sự (Staff / Admin) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Phân quyền RBAC</span>
+            <h3 class="text-base font-bold text-slate-900 mt-0.5">Quản Lý Nhân Sự (Staff)</h3>
+            <p class="text-xs text-slate-500">Cấp mới hoặc thu hồi tài khoản nhân viên xử lý đơn hàng.</p>
+          </div>
+
+          <form id="form-create-staff" class="space-y-2.5 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                id="staff-new-username"
+                placeholder="Username (vd: sale02)"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+              <input
+                type="password"
+                id="staff-new-password"
+                placeholder="Mật khẩu (>=6 ký tự)"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                id="staff-new-fullname"
+                placeholder="Họ và tên nhân viên"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+              <input
+                type="text"
+                id="staff-new-phone"
+                placeholder="Số điện thoại"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold transition-colors"
+            >
+              Tạo Tài Khoản Nhân Viên Mới
+            </button>
+            <p id="staff-manage-msg" class="hidden text-xs font-medium"></p>
+          </form>
+
+          <div class="border-t border-slate-200 pt-3">
+            <div class="text-xs font-bold text-slate-600 uppercase mb-2">Danh sách nhân sự hiện tại:</div>
+            <div id="staff-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- 2. Quản lý Mã Giảm Giá (Coupons) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Khuyến mãi E-Commerce</span>
+            <h3 class="text-base font-bold text-slate-900 mt-0.5">Quản Lý Mã Giảm Giá (Coupon)</h3>
+            <p class="text-xs text-slate-500">Tạo mã giảm theo % hoặc số tiền cố định cho khách mua hàng.</p>
+          </div>
+
+          <form id="form-create-coupon" class="space-y-2.5 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                id="coupon-new-code"
+                placeholder="Mã (vd: HE2026)"
+                class="rounded-xl border border-slate-300 px-3 py-2 uppercase font-mono focus:border-brand-600 focus:outline-none"
+              />
+              <select
+                id="coupon-new-type"
+                class="rounded-xl border border-slate-300 bg-white px-3 py-2 focus:border-brand-600 focus:outline-none"
+              >
+                <option value="percent">Giảm theo %</option>
+                <option value="fixed">Giảm tiền mặt (VNĐ)</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                id="coupon-new-value"
+                placeholder="Giá trị (vd: 15 hoặc 100000)"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+              <input
+                type="text"
+                id="coupon-new-desc"
+                placeholder="Mô tả ngắn"
+                class="rounded-xl border border-slate-300 px-3 py-2 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+            >
+              Thêm Mã Giảm Giá Mới
+            </button>
+            <p id="coupon-manage-msg" class="hidden text-xs font-medium"></p>
+          </form>
+
+          <div class="border-t border-slate-200 pt-3">
+            <div class="text-xs font-bold text-slate-600 uppercase mb-2">Mã giảm giá đang hoạt động:</div>
+            <div id="coupon-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- 3. Cấu hình Tài khoản Ngân hàng VietQR -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Thanh toán Tự động</span>
+            <h3 class="text-base font-bold text-slate-900 mt-0.5">Cấu Hình Ngân Hàng VietQR</h3>
+            <p class="text-xs text-slate-500">Thay đổi số tài khoản nhận tiền để sinh mã QR động trên toàn hệ thống.</p>
+          </div>
+
+          <form id="form-bank-settings" class="space-y-3 text-xs">
+            <div>
+              <label for="setting-bank-id" class="block font-semibold text-slate-700 mb-1">Chọn Ngân hàng nhận tiền (Chuẩn Napas VietQR)</label>
+              <select
+                id="setting-bank-id"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold focus:border-brand-600 focus:outline-none"
+              >
+                <option value="MB">MB - Ngân hàng Quân Đội (MBBank)</option>
+                <option value="VCB">VCB - Vietcombank</option>
+                <option value="TCB">TCB - Techcombank</option>
+                <option value="ICB">ICB - VietinBank</option>
+                <option value="BIDV">BIDV - Ngân hàng Đầu tư &amp; Phát triển</option>
+                <option value="ACB">ACB - Ngân hàng Á Châu</option>
+                <option value="VPB">VPB - VPBank</option>
+                <option value="TPB">TPB - TPBank</option>
+                <option value="VBA">VBA - Agribank</option>
+                <option value="STB">STB - Sacombank</option>
+                <option value="VIB">VIB - Ngân hàng Quốc Tế</option>
+                <option value="HDB">HDB - HDBank</option>
+                <option value="SHB">SHB - Ngân hàng Sài Gòn Hà Nội</option>
+                <option value="MSB">MSB - Ngân hàng Hàng Hải</option>
+                <option value="OCB">OCB - Ngân hàng Phương Đông</option>
+                <option value="LPB">LPB - LPBank</option>
+                <option value="TIMO">TIMO - Ngân hàng số Timo</option>
+              </select>
+            </div>
+            <div>
+              <label for="setting-account-no" class="block font-semibold text-slate-700 mb-1">Số tài khoản nhận tiền thật</label>
+              <input
+                type="text"
+                id="setting-account-no"
+                placeholder="Nhập đúng số tài khoản ngân hàng của bạn"
+                class="w-full rounded-xl border border-slate-300 px-3 py-2 font-mono focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label for="setting-account-name" class="block font-semibold text-slate-700 mb-1">Tên chủ tài khoản (Viết hoa không dấu)</label>
+              <input
+                type="text"
+                id="setting-account-name"
+                placeholder="VD: PHAM THE TRAC"
+                class="w-full rounded-xl border border-slate-300 px-3 py-2 uppercase focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full py-2.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold transition-colors"
+            >
+              Lưu Cấu Hình Ngân Hàng VietQR
+            </button>
+            <p id="bank-settings-msg" class="hidden text-xs font-medium"></p>
+
+            <!-- Xem trước mã VietQR thật ngay tại trang Admin -->
+            <div class="pt-3 border-t border-slate-200 text-center">
+              <div class="text-xs font-bold text-slate-600 mb-1.5">Mã QR Kiểm Tra Thử (Quét bằng App Ngân hàng):</div>
+              <img
+                id="admin-bank-qr-preview"
+                src=""
+                alt="Mã VietQR kiểm tra"
+                class="w-36 h-36 object-contain mx-auto rounded-xl border border-slate-200 bg-slate-50 p-1"
+              />
+              <div id="admin-bank-qr-caption" class="text-xs font-mono font-semibold text-brand-700 mt-1.5"></div>
+            </div>
+          </form>
+        </div>
+
+        <!-- 4. Quản lý Đánh giá Khách hàng (Reviews trên Supabase) -->
+        <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Kiểm duyệt nội dung</span>
+              <h3 class="text-base font-bold text-slate-900 mt-0.5">Quản Lý Đánh Giá Thực Tế Của Khách Hàng (Reviews)</h3>
+              <p class="text-xs text-slate-500">Danh sách các đánh giá do khách hàng gửi từ trang chủ và lưu trên Supabase PostgreSQL. Admin có quyền xóa các đánh giá spam.</p>
+            </div>
+          </div>
+          <div id="admin-reviews-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-2"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       MODAL CHI TIẾT ĐƠN HÀNG, DUYỆT TIỀN VIETQR & AI TELESALE
+       ========================================== -->
+  <div
+    id="order-detail-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full p-5 sm:p-7 my-8 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Chi tiết &amp; Nghiệp vụ Đơn hàng</span>
+          <h3 class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
+            Đơn hàng <span id="detail-order-id" class="text-brand-600 font-mono">ORD-2026-001</span>
+          </h3>
+        </div>
+        <button type="button" id="btn-close-detail-modal" class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg bg-slate-100">
+          Đóng
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Cột trái: Thông tin đơn, Duyệt tiền, Phân công, Timeline (7 cột) -->
+        <div class="lg:col-span-7 space-y-5">
+
+          <!-- Thông tin tóm tắt khách & gói -->
+          <div id="detail-summary-box" class="rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs sm:text-sm space-y-2"></div>
+
+          <!-- Khu vực Duyệt Thanh Toán & Kích Hoạt Dịch Vụ -->
+          <div class="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold uppercase text-emerald-800">Nghiệp vụ Kế toán &amp; Kích hoạt</div>
+              <p id="detail-payment-status-text" class="text-xs text-slate-600 mt-0.5"></p>
+            </div>
+            <button
+              type="button"
+              id="btn-approve-payment"
+              class="shrink-0 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-all"
+            >
+              Xác Nhận Đã Nhận Tiền &amp; Kích Hoạt Dịch Vụ
+            </button>
+          </div>
+
+          <!-- Form Cập nhật Trạng thái, Phân công nhân sự (Admin) & Ghi chú -->
+          <div class="rounded-xl border border-slate-200 p-4 space-y-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="detail-status-select" class="block text-xs font-semibold text-slate-700 mb-1">Trạng thái đơn hàng:</label>
+                <select id="detail-status-select" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm">
+                  <option value="pending_payment">pending_payment (Chờ thanh toán)</option>
+                  <option value="paid_processing">paid_processing (Chờ duyệt tiền)</option>
+                  <option value="completed">completed (Đã kích hoạt)</option>
+                  <option value="cancelled">cancelled (Đã hủy)</option>
+                </select>
+              </div>
+              <div>
+                <label for="detail-assignee-select" class="block text-xs font-semibold text-slate-700 mb-1">Phân công nhân viên (Chỉ Admin):</label>
+                <select id="detail-assignee-select" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm">
+                  <option value="">Chưa phân công</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="detail-notes-input" class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú xử lý nội bộ:</label>
+              <textarea
+                id="detail-notes-input"
+                rows="2"
+                placeholder="Ghi chú xác nhận chuyển khoản, yêu cầu hỗ trợ kỹ thuật..."
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <span id="detail-save-msg" class="text-xs font-semibold text-emerald-700 hidden"></span>
+              <button
+                type="button"
+                id="btn-save-order-update"
+                class="ml-auto py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold transition-all"
+              >
+                Lưu Cập Nhật Đơn Hàng
+              </button>
+            </div>
+          </div>
+
+          <!-- Timeline vết đơn hàng -->
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Timeline Nhật Ký Vết Đơn Hàng</h4>
+            <div id="detail-timeline-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+          </div>
+
+        </div>
+
+        <!-- Cột phải: Khung AI Trợ Lý Telesale & Ảnh VietQR đối soát (5 cột) -->
+        <div class="lg:col-span-5 space-y-5">
+
+          <!-- Khung AI Trợ Lý Telesale -->
+          <div class="rounded-2xl border border-brand-200 bg-brand-50/50 p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Gemini AI Sales Assistant</span>
+                <h4 class="text-sm sm:text-base font-bold text-slate-900">AI Trợ Lý Telesale Chốt Đơn</h4>
+              </div>
+              <button
+                type="button"
+                id="btn-generate-sales-script"
+                class="py-2 px-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-2xs transition-all whitespace-nowrap"
+              >
+                AI Soạn Kịch Bản Gọi Điện
+              </button>
+            </div>
+            <p class="text-xs text-slate-600 mb-3">
+              Tự động phân tích gói cước, tên miền và add-ons của đơn này để sinh kịch bản gọi điện 3 bước cho nhân viên tư vấn.
+            </p>
+            <div
+              id="detail-sales-script-box"
+              class="rounded-xl bg-white border border-slate-200 p-3.5 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed min-h-[140px]"
+            >Bấm nút "AI Soạn Kịch Bản Gọi Điện" ở trên để tạo kịch bản tư vấn cho khách hàng này.</div>
+          </div>
+
+          <!-- Ảnh mã VietQR của đơn hàng để đối soát -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+            <div class="text-xs font-bold uppercase text-slate-600 mb-2">Mã VietQR Đối Soát Thanh Toán</div>
+            <img
+              id="detail-qr-img"
+              src=""
+              alt="Mã VietQR đơn hàng"
+              class="w-40 h-40 object-contain mx-auto rounded-lg border border-slate-200 bg-white p-1"
+            />
+            <div id="detail-qr-amount" class="text-xs font-bold text-brand-700 mt-2"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
