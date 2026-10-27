@@ -506,49 +506,49 @@ function renderAIResults(top3Plans, advice, isFallback, needs) {
     <h3 class="text-base font-bold text-slate-800 mb-1">Nhan tu van truc tiep tu chuyen gia</h3>
     <p class="text-xs text-slate-500 mb-4">Dien thong tin de nhan vien cua chung toi lien he tu van mien phi trong vong 15 phut.</p>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-      <input id="lead-name" type="text" placeholder="Ho va ten *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
-      <input id="lead-phone" type="tel" placeholder="So dien thoai *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
-      <input id="lead-email" type="email" placeholder="Email (tuy chon)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+      <input id="ai-lead-name" type="text" placeholder="Họ và tên *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+      <input id="ai-lead-phone" type="tel" placeholder="Số điện thoại *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+      <input id="ai-lead-email" type="email" placeholder="Email (tùy chọn)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
     </div>
-    <button id="btn-submit-lead" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors">
-      Dang Ky Nhan Tu Van Mien Phi
+    <button id="btn-submit-ai-lead" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors">
+      Đăng Ký Nhận Tư Vấn Miễn Phí
     </button>
-    <p id="lead-msg" class="mt-2 text-xs hidden"></p>
+    <p id="ai-lead-msg" class="mt-2 text-xs hidden"></p>
   `;
   container.appendChild(consultBox);
 
-  // Pre-fill neu da dang nhap
+  // Pre-fill nếu đã đăng nhập
   if (currentAuthUser) {
-    const nameEl = document.getElementById('lead-name');
-    const phoneEl = document.getElementById('lead-phone');
-    const emailEl = document.getElementById('lead-email');
+    const nameEl = document.getElementById('ai-lead-name');
+    const phoneEl = document.getElementById('ai-lead-phone');
+    const emailEl = document.getElementById('ai-lead-email');
     if (nameEl) nameEl.value = currentAuthUser.fullName || '';
     if (phoneEl) phoneEl.value = currentAuthUser.phone || '';
     if (emailEl) emailEl.value = currentAuthUser.email || '';
   }
 
-  document.getElementById('btn-submit-lead')?.addEventListener('click', async () => {
-    const nameVal = (document.getElementById('lead-name')?.value || '').trim();
-    const phoneVal = (document.getElementById('lead-phone')?.value || '').trim();
-    const emailVal = (document.getElementById('lead-email')?.value || '').trim();
-    const msgEl = document.getElementById('lead-msg');
-    const btn = document.getElementById('btn-submit-lead');
+  document.getElementById('btn-submit-ai-lead')?.addEventListener('click', async () => {
+    const nameVal = (document.getElementById('ai-lead-name')?.value || '').trim();
+    const phoneVal = (document.getElementById('ai-lead-phone')?.value || '').trim();
+    const emailVal = (document.getElementById('ai-lead-email')?.value || '').trim();
+    const msgEl = document.getElementById('ai-lead-msg');
+    const btn = document.getElementById('btn-submit-ai-lead');
 
     if (!nameVal || nameVal.length < 2) {
-      msgEl.textContent = 'Vui long nhap Ho ten (toi thieu 2 ky tu)';
+      msgEl.textContent = 'Vui lòng nhập Họ tên (tối thiểu 2 ký tự)';
       msgEl.className = 'mt-2 text-xs text-red-600';
       msgEl.classList.remove('hidden');
       return;
     }
     if (!phoneVal || phoneVal.length < 9) {
-      msgEl.textContent = 'Vui long nhap So dien thoai hop le';
+      msgEl.textContent = 'Vui lòng nhập Số điện thoại hợp lệ';
       msgEl.className = 'mt-2 text-xs text-red-600';
       msgEl.classList.remove('hidden');
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Dang gui...';
+    btn.textContent = 'Đang gửi...';
     msgEl.classList.add('hidden');
 
     try {
@@ -574,19 +574,19 @@ function renderAIResults(top3Plans, advice, isFallback, needs) {
       });
       const data = await res.json();
       if (data.ok) {
-        msgEl.textContent = 'Dang ky thanh cong! Nhan vien se lien he ban trong vong 15 phut.';
+        msgEl.textContent = 'Đăng ký thành công! Chuyên viên tư vấn sẽ liên hệ bạn trong vòng 15 phút.';
         msgEl.className = 'mt-2 text-xs text-emerald-600 font-semibold';
         msgEl.classList.remove('hidden');
-        btn.textContent = 'Da Dang Ky Tu Van';
+        btn.textContent = 'Đã Đăng Ký Tư Vấn';
         btn.disabled = true;
         btn.className = btn.className.replace('bg-brand-600 hover:bg-brand-700', 'bg-slate-400 cursor-not-allowed');
       } else {
-        throw new Error(data.error || 'Loi he thong');
+        throw new Error(data.error || 'Lỗi hệ thống');
       }
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = 'Dang Ky Nhan Tu Van Mien Phi';
-      msgEl.textContent = 'Loi: ' + err.message;
+      btn.textContent = 'Đăng Ký Nhận Tư Vấn Miễn Phí';
+      msgEl.textContent = 'Lỗi: ' + err.message;
       msgEl.className = 'mt-2 text-xs text-red-600';
       msgEl.classList.remove('hidden');
     }
@@ -1789,7 +1789,7 @@ function initLeadModal() {
   closeBtn?.addEventListener('click', closeModal);
   cancelBtn?.addEventListener('click', closeModal);
 
-  form?.addEventListener('submit', (event) => {
+  form?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = nameInput.value.trim();
     const phone = phoneInput.value.trim();
@@ -1814,22 +1814,60 @@ function initLeadModal() {
 
     if (!valid) return;
 
-    const leadItem = {
-      id: 'lead_' + Date.now(),
-      name,
-      phone,
-      planChosen: planInput.value || 'Business',
-      needs: currentUserNeeds || null,
-      createdAt: new Date().toISOString()
-    };
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang gửi...';
+    }
 
-    saveLeadToLocalStorage(leadItem);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: name,
+          phone: phone,
+          recommendedPlan: planInput.value || 'Business',
+          siteType: currentUserNeeds?.siteType || '',
+          traffic: currentUserNeeds?.traffic || '',
+          budget: currentUserNeeds?.budget || 0,
+          needDomain: currentUserNeeds?.needDomain || false,
+          desiredDomain: currentUserNeeds?.desiredDomain || '',
+          preferredExtension: currentUserNeeds?.preferredExtension || '.vn'
+        })
+      });
 
-    msgBox.textContent = `Đăng ký tư vấn gói ${leadItem.planChosen} thành công! Đã lưu vào danh sách khách hàng (localStorage).`;
-    msgBox.className = 'rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
-    msgBox.classList.remove('hidden');
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Lỗi gửi yêu cầu tư vấn');
+      }
 
-    setTimeout(closeModal, 1100);
+      const leadItem = {
+        id: data.lead?.id || ('lead_' + Date.now()),
+        name,
+        phone,
+        planChosen: planInput.value || 'Business',
+        needs: currentUserNeeds || null,
+        createdAt: new Date().toISOString()
+      };
+
+      saveLeadToLocalStorage(leadItem);
+
+      msgBox.textContent = `Đăng ký tư vấn gói ${leadItem.planChosen} thành công! Chuyên viên sẽ liên hệ lại qua SĐT ${phone} trong 15 phút.`;
+      msgBox.className = 'rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+      msgBox.classList.remove('hidden');
+
+      setTimeout(closeModal, 1500);
+    } catch (err) {
+      msgBox.textContent = 'Lỗi gửi yêu cầu: ' + err.message;
+      msgBox.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-800';
+      msgBox.classList.remove('hidden');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Gửi thông tin';
+      }
+    }
   });
 }
 
