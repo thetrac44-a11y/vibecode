@@ -986,4 +986,264 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Lỗi xóa đánh giá:', err);
     }
   });
+
+  // ============================================================================
+  // LEAD MANAGEMENT — Quan ly Khach Hang Tiem Nang
+  // ============================================================================
+
+  // Tab switching logic
+  function switchAdminTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      if (btn.dataset.tab === tabName) {
+        btn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-brand-600 text-white';
+      } else {
+        btn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-slate-600 hover:bg-slate-100';
+      }
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.add('hidden');
+    });
+    const activePanel = document.getElementById('tab-panel-' + tabName);
+    if (activePanel) activePanel.classList.remove('hidden');
+    if (tabName === 'leads') {
+      loadLeads();
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchAdminTab(btn.dataset.tab));
+  });
+
+  let allLeads = [];
+  let currentLeadId = null;
+
+  function getLeadStatusLabel(status) {
+    const map = {
+      new: 'Moi',
+      contacted: 'Da lien he',
+      converted: 'Chuyen doi don',
+      lost: 'Khong tiep can'
+    };
+    return map[status] || status;
+  }
+
+  function getLeadStatusClass(status) {
+    const map = {
+      new: 'bg-amber-100 text-amber-700',
+      contacted: 'bg-blue-100 text-blue-700',
+      converted: 'bg-emerald-100 text-emerald-700',
+      lost: 'bg-slate-100 text-slate-500'
+    };
+    return map[status] || 'bg-slate-100 text-slate-500';
+  }
+
+  function formatSiteType(val) {
+    const map = { blog: 'Blog / Ca nhan', company: 'Cong ty', ecommerce: 'Ban hang / TMDT', webapp: 'Web App / SaaS' };
+    return map[val] || val;
+  }
+
+  function formatTraffic(val) {
+    const map = { low: 'Thap (<1000)', medium: 'Vua (1K-10K)', high: 'Cao (10K-30K)', very_high: 'Rat cao (>30K)' };
+    return map[val] || val;
+  }
+
+  async function loadLeads() {
+    try {
+      const res = await fetch('/api/leads', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        allLeads = data.leads || [];
+        renderLeadsTable();
+        updateLeadKPIs();
+      }
+    } catch (err) {
+      console.error('Load leads error:', err.message);
+    }
+  }
+
+  function updateLeadKPIs() {
+    const total = allLeads.length;
+    const newCount = allLeads.filter(l => l.status === 'new').length;
+    const contactedCount = allLeads.filter(l => l.status === 'contacted').length;
+    const convertedCount = allLeads.filter(l => l.status === 'converted').length;
+    const kpiTotal = document.getElementById('lead-kpi-total');
+    const kpiNew = document.getElementById('lead-kpi-new');
+    const kpiContacted = document.getElementById('lead-kpi-contacted');
+    const kpiConverted = document.getElementById('lead-kpi-converted');
+    if (kpiTotal) kpiTotal.textContent = String(total);
+    if (kpiNew) kpiNew.textContent = String(newCount);
+    if (kpiContacted) kpiContacted.textContent = String(contactedCount);
+    if (kpiConverted) kpiConverted.textContent = String(convertedCount);
+  }
+
+  function renderLeadsTable() {
+    const tbody = document.getElementById('leads-tbody');
+    if (!tbody) return;
+    const filterStatus = document.getElementById('lead-filter-status')?.value || 'all';
+    const filtered = filterStatus === 'all' ? allLeads : allLeads.filter(l => l.status === filterStatus);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Chua co yeu cau tu van nao.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(lead => {
+      const statusClass = getLeadStatusClass(lead.status);
+      const statusLabel = getLeadStatusLabel(lead.status);
+      const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleString('vi-VN') : '';
+      return `<tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+        <td class="px-4 py-3">
+          <p class="font-semibold text-slate-800">${escapeHtml(lead.customer_name || '')}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(lead.phone || '')} ${lead.email ? '/ ' + escapeHtml(lead.email) : ''}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${createdDate}</p>
+        </td>
+        <td class="px-4 py-3 text-xs text-slate-600">
+          <p>${formatSiteType(lead.site_type)}</p>
+          <p class="text-slate-400">${formatTraffic(lead.traffic)}</p>
+          ${lead.budget ? '<p class="text-slate-400">NS: ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/th</p>' : ''}
+          ${lead.desired_domain ? '<p class="text-slate-500">Mien: ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
+        </td>
+        <td class="px-4 py-3">
+          <p class="text-xs font-semibold text-brand-600">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</p>
+        </td>
+        <td class="px-4 py-3">
+          <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">${statusLabel}</span>
+        </td>
+        <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(lead.assigned_to_name || 'Chua phan cong')}</td>
+        <td class="px-4 py-3">
+          <button class="btn-open-lead text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold px-3 py-1.5 rounded-lg transition-colors" data-lead-id="${lead.id}">
+            Xu ly
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('.btn-open-lead').forEach(btn => {
+      btn.addEventListener('click', () => openLeadModal(btn.dataset.leadId));
+    });
+  }
+
+  function openLeadModal(leadId) {
+    const lead = allLeads.find(l => l.id === leadId);
+    if (!lead) return;
+    currentLeadId = leadId;
+
+    const infoEl = document.getElementById('lead-detail-info');
+    if (infoEl) {
+      infoEl.innerHTML = `
+        <div class="bg-slate-50 rounded-xl p-4 space-y-1.5">
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ma lead:</span> <span class="font-mono text-xs">${escapeHtml(lead.id)}</span></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ho ten:</span> ${escapeHtml(lead.customer_name)}</p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">So DT:</span> <a href="tel:${escapeHtml(lead.phone)}" class="text-brand-600 font-semibold">${escapeHtml(lead.phone)}</a></p>
+          ${lead.email ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Email:</span> ' + escapeHtml(lead.email) + '</p>' : ''}
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Loai web:</span> ${formatSiteType(lead.site_type)}</p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Luu luong:</span> ${formatTraffic(lead.traffic)}</p>
+          ${lead.budget ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ngan sach:</span> ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/thang</p>' : ''}
+          ${lead.desired_domain ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ten mien:</span> ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Goi de xuat:</span> <span class="text-brand-600 font-bold">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</span></p>
+          ${lead.ai_advice ? '<div class="mt-2 p-2.5 bg-white rounded-lg border border-slate-100"><p class="text-xs font-semibold text-slate-500 mb-1">Loi tu van AI:</p><p class="text-xs text-slate-600 leading-relaxed">' + escapeHtml(lead.ai_advice.slice(0, 300)) + (lead.ai_advice.length > 300 ? '...' : '') + '</p></div>' : ''}
+          ${lead.notes ? '<div class="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"><p class="text-xs font-semibold text-amber-700 mb-1">Ghi chu cu:</p><p class="text-xs text-amber-800">' + escapeHtml(lead.notes) + '</p></div>' : ''}
+        </div>
+      `;
+    }
+
+    const statusSelect = document.getElementById('lead-status-select');
+    if (statusSelect) statusSelect.value = lead.status || 'new';
+
+    const assigneeSelect = document.getElementById('lead-assignee-select');
+    if (assigneeSelect) {
+      assigneeSelect.innerHTML = '<option value="">Chua phan cong</option>';
+      (staffUsers || []).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.fullName || s.full_name || s.username;
+        if (s.id === lead.assigned_to) opt.selected = true;
+        assigneeSelect.appendChild(opt);
+      });
+    }
+
+    const notesInput = document.getElementById('lead-notes-input');
+    if (notesInput) notesInput.value = lead.notes || '';
+
+    const saveMsg = document.getElementById('lead-save-msg');
+    if (saveMsg) saveMsg.classList.add('hidden');
+
+    const modal = document.getElementById('lead-detail-modal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeLeadModal() {
+    const modal = document.getElementById('lead-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    currentLeadId = null;
+  }
+
+  async function saveLeadUpdate() {
+    if (!currentLeadId) return;
+    const statusVal = document.getElementById('lead-status-select')?.value || 'new';
+    const assigneeEl = document.getElementById('lead-assignee-select');
+    const assigneeId = assigneeEl?.value || '';
+    const assigneeName = assigneeEl?.options[assigneeEl.selectedIndex]?.textContent || 'Chua phan cong';
+    const notesVal = document.getElementById('lead-notes-input')?.value || '';
+    const saveMsg = document.getElementById('lead-save-msg');
+    const saveBtn = document.getElementById('btn-save-lead');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Dang luu...'; }
+
+    try {
+      const res = await fetch('/api/leads/' + currentLeadId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ status: statusVal, assignedTo: assigneeId, assignedToName: assigneeName, notes: notesVal })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const idx = allLeads.findIndex(l => l.id === currentLeadId);
+        if (idx !== -1) {
+          allLeads[idx] = { ...allLeads[idx], status: statusVal, assigned_to: assigneeId, assigned_to_name: assigneeName, notes: notesVal };
+        }
+        renderLeadsTable();
+        updateLeadKPIs();
+        if (saveMsg) { saveMsg.textContent = 'Da luu thanh cong.'; saveMsg.className = 'text-xs text-emerald-600 mt-1'; saveMsg.classList.remove('hidden'); }
+        setTimeout(() => closeLeadModal(), 1200);
+      } else {
+        throw new Error(data.error || 'Loi he thong');
+      }
+    } catch (err) {
+      if (saveMsg) { saveMsg.textContent = 'Loi: ' + err.message; saveMsg.className = 'text-xs text-red-600 mt-1'; saveMsg.classList.remove('hidden'); }
+    } finally {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Luu Cap Nhat'; }
+    }
+  }
+
+  async function deleteLead() {
+    if (!currentLeadId) return;
+    if (!confirm('Xac nhan xoa lead nay khoi he thong?')) return;
+    try {
+      const res = await fetch('/api/leads/' + currentLeadId, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        allLeads = allLeads.filter(l => l.id !== currentLeadId);
+        renderLeadsTable();
+        updateLeadKPIs();
+        closeLeadModal();
+      }
+    } catch (err) {
+      alert('Loi xoa lead: ' + err.message);
+    }
+  }
+
+  document.getElementById('btn-close-lead-modal')?.addEventListener('click', closeLeadModal);
+  document.getElementById('btn-save-lead')?.addEventListener('click', saveLeadUpdate);
+  document.getElementById('btn-delete-lead')?.addEventListener('click', deleteLead);
+  document.getElementById('btn-refresh-leads')?.addEventListener('click', loadLeads);
+  document.getElementById('lead-filter-status')?.addEventListener('change', renderLeadsTable);
+  document.getElementById('lead-detail-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeLeadModal();
+  });
+
 });

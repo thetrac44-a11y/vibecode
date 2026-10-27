@@ -784,6 +784,136 @@ async function deleteReviewById(id) {
   return true;
 }
 
+function mapLeadFromPg(row) {
+  if (!row) return null;
+  const needsObj = (typeof row.needs === 'object' && row.needs !== null) ? row.needs : {};
+  return {
+    id: row.id,
+    customer_name: row.name || row.customer_name || needsObj.customerName || 'Khách tư vấn',
+    phone: row.phone || needsObj.phone || '',
+    email: needsObj.email || row.email || '',
+    site_type: needsObj.siteType || row.site_type || '',
+    traffic: needsObj.traffic || needsObj.trafficLabel || row.traffic || '',
+    budget: Number(needsObj.budget || row.budget || 0),
+    need_domain: Boolean(needsObj.needDomain ?? row.need_domain),
+    desired_domain: needsObj.desiredDomain || row.desired_domain || '',
+    preferred_extension: needsObj.preferredExtension || row.preferred_extension || '.vn',
+    recommended_plan: row.plan_chosen || row.recommended_plan || needsObj.recommendedPlan || '',
+    ai_advice: needsObj.aiAdvice || row.ai_advice || '',
+    status: needsObj.status || row.status || 'new',
+    assigned_to: needsObj.assignedTo || row.assigned_to || '',
+    assigned_to_name: needsObj.assignedToName || row.assigned_to_name || 'Chưa phân công',
+    notes: needsObj.notes || row.notes || '',
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: needsObj.updatedAt || row.updated_at || row.created_at
+  };
+}
+
+function mapLeadToPg(l) {
+  const needs = {
+    email: l.email || '',
+    siteType: l.site_type || '',
+    traffic: l.traffic || '',
+    budget: Number(l.budget) || 0,
+    needDomain: Boolean(l.need_domain),
+    desiredDomain: l.desired_domain || '',
+    preferredExtension: l.preferred_extension || '.vn',
+    recommendedPlan: l.recommended_plan || '',
+    aiAdvice: l.ai_advice || '',
+    status: l.status || 'new',
+    assignedTo: l.assigned_to || '',
+    assignedToName: l.assigned_to_name || 'Chưa phân công',
+    notes: l.notes || '',
+    updatedAt: l.updated_at || new Date().toISOString()
+  };
+  return {
+    id: l.id,
+    name: l.customer_name || l.name || '',
+    phone: l.phone || '',
+    plan_chosen: l.recommended_plan || l.plan_chosen || '',
+    needs: needs,
+    created_at: l.created_at || new Date().toISOString()
+  };
+}
+
+async function createLead(leadObj) {
+  if (isSupabaseActive) {
+    try {
+      const pgRow = mapLeadToPg(leadObj);
+      const { data, error } = await supabase.from('leads').insert([pgRow]).select().single();
+      if (!error && data) return mapLeadFromPg(data);
+      console.warn('[DB] Supabase createLead failed, falling back to local:', error ? error.message : 'no data');
+    } catch (e) {
+      console.warn('[DB] Supabase createLead exception:', e.message);
+    }
+  }
+  const db = readLocalDb();
+  if (!db.leads) db.leads = [];
+  db.leads.unshift(leadObj);
+  writeLocalDb(db);
+  return leadObj;
+}
+
+async function getAllLeads() {
+  if (isSupabaseActive) {
+    try {
+      const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map(mapLeadFromPg);
+      }
+      console.warn('[DB] Supabase getAllLeads failed, falling back to local:', error ? error.message : 'no data');
+    } catch (e) {
+      console.warn('[DB] Supabase getAllLeads exception:', e.message);
+    }
+  }
+  const db = readLocalDb();
+  return (db.leads || []).map(mapLeadFromPg).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+async function updateLead(leadObj) {
+  if (isSupabaseActive) {
+    try {
+      // First fetch the existing lead to preserve needs object fields
+      const { data: existing } = await supabase.from('leads').select('*').eq('id', leadObj.id).maybeSingle();
+      if (existing) {
+        const existingMapped = mapLeadFromPg(existing);
+        const merged = { ...existingMapped, ...leadObj, updated_at: new Date().toISOString() };
+        const pgRow = mapLeadToPg(merged);
+        const { data, error } = await supabase.from('leads').update({
+          needs: pgRow.needs
+        }).eq('id', leadObj.id).select().single();
+        if (!error && data) return mapLeadFromPg(data);
+      }
+    } catch (e) {
+      console.warn('[DB] Supabase updateLead exception:', e.message);
+    }
+  }
+  const db = readLocalDb();
+  if (!db.leads) db.leads = [];
+  const idx = db.leads.findIndex(l => l.id === leadObj.id);
+  if (idx !== -1) {
+    db.leads[idx] = { ...db.leads[idx], ...leadObj, updated_at: new Date().toISOString() };
+    writeLocalDb(db);
+    return mapLeadFromPg(db.leads[idx]);
+  }
+  throw new Error('Lead not found');
+}
+
+async function deleteLeadById(id) {
+  if (isSupabaseActive) {
+    try {
+      await supabase.from('leads').delete().eq('id', id);
+    } catch (e) {
+      console.warn('[DB] Supabase deleteLead error:', e.message);
+    }
+  }
+  const db = readLocalDb();
+  if (!db.leads) return true;
+  db.leads = db.leads.filter(l => l.id !== id);
+  writeLocalDb(db);
+  return true;
+}
+
 module.exports = {
   initDatabase,
   getDbStatus,
@@ -804,5 +934,9 @@ module.exports = {
   deleteOrderById,
   getReviews,
   createReview,
-  deleteReviewById
+  deleteReviewById,
+  createLead,
+  getAllLeads,
+  updateLead,
+  deleteLeadById
 };

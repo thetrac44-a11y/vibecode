@@ -140,6 +140,19 @@
          ========================================== -->
     <section id="admin-dashboard-screen" class="hidden space-y-6">
 
+      <!-- Tab Navigation Bar -->
+      <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        <button id="tab-btn-orders" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-brand-600 text-white" data-tab="orders">
+          Don Hang
+        </button>
+        <button id="tab-btn-leads" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="leads">
+          Khach Hang Tiem Nang
+        </button>
+      </div>
+
+      <!-- Tab Panel: Don Hang (default active) -->
+      <div id="tab-panel-orders" class="tab-panel space-y-6">
+
       <!-- 4 Thẻ Thống Kê KPI Doanh Thu -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
@@ -236,9 +249,118 @@
         </div>
       </div>
 
+      <!-- End tab-panel-orders -->
+      </div>
+
+      <!-- Panel: Khach Hang Tiem Nang -->
+      <div id="tab-panel-leads" class="tab-panel hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Khach Hang Tiem Nang</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Danh sach yeu cau tu van tu khach chua dat hang. Lien he de chuyen doi thanh don hang.</p>
+          </div>
+          <div class="flex gap-2">
+            <select id="lead-filter-status" class="border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-brand-400">
+              <option value="all">Tat ca trang thai</option>
+              <option value="new">Moi (Chua lien he)</option>
+              <option value="contacted">Da lien he</option>
+              <option value="converted">Da chuyen doi don</option>
+              <option value="lost">Khong tiep can duoc</option>
+            </select>
+            <button id="btn-refresh-leads" class="border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+              Lam moi
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 mb-1">Tong leads</p>
+            <p id="lead-kpi-total" class="text-2xl font-extrabold text-slate-800">0</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 mb-1">Moi / Chua xu ly</p>
+            <p id="lead-kpi-new" class="text-2xl font-extrabold text-amber-500">0</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 mb-1">Da lien he</p>
+            <p id="lead-kpi-contacted" class="text-2xl font-extrabold text-blue-500">0</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <p class="text-xs text-slate-500 mb-1">Chuyen doi don hang</p>
+            <p id="lead-kpi-converted" class="text-2xl font-extrabold text-emerald-600">0</p>
+          </div>
+        </div>
+
+        <!-- Leads table -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100">
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Khach hang</th>
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Nhu cau</th>
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Goi AI goi y</th>
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Trang thai</th>
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Phu trach</th>
+                  <th class="text-left px-4 py-3 font-semibold text-slate-700">Thao tac</th>
+                </tr>
+              </thead>
+              <tbody id="leads-tbody">
+                <tr><td colspan="6" class="text-center py-8 text-slate-400">Dang tai du lieu...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal chi tiet + xu ly Lead -->
+      <div id="lead-detail-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div class="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
+            <h3 class="font-bold text-slate-800">Chi tiet Yeu cau Tu van</h3>
+            <button id="btn-close-lead-modal" class="text-slate-400 hover:text-slate-700 font-bold text-xl leading-none">&times;</button>
+          </div>
+          <div class="p-6 space-y-4">
+            <div id="lead-detail-info" class="text-sm text-slate-700 space-y-2"></div>
+            <hr class="border-slate-100" />
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Cap nhat trang thai</label>
+              <select id="lead-status-select" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400">
+                <option value="new">Moi / Chua lien he</option>
+                <option value="contacted">Da lien he</option>
+                <option value="converted">Da chuyen doi thanh don hang</option>
+                <option value="lost">Khong tiep can duoc</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Phan cong cho nhan vien</label>
+              <select id="lead-assignee-select" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400">
+                <option value="">Chua phan cong</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1.5">Ghi chu xu ly noi bo</label>
+              <textarea id="lead-notes-input" rows="3" placeholder="Noi dung ghi chu (thoi gian goi, ket qua trao doi...)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brand-400 resize-none"></textarea>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button id="btn-save-lead" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors">
+                Luu Cap Nhat
+              </button>
+              <button id="btn-delete-lead" class="px-4 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl py-2.5 text-sm transition-colors">
+                Xoa Lead
+              </button>
+            </div>
+            <p id="lead-save-msg" class="text-xs hidden mt-1"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHU VUC QUAN TRI HE THONG -->
+
       <!-- ==========================================
-           KHU VỰC QUẢN TRỊ HỆ THỐNG DÀNH RIÊNG CHO ADMIN
-           (Quản lý Nhân sự Staff, Mã Giảm Giá & Cấu Hình Ngân Hàng VietQR)
+           (Quan ly Nhan su Staff, Ma Giam Gia & Cau Hinh Ngan Hang VietQR)
            ========================================== -->
       <div id="admin-system-panel" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
 

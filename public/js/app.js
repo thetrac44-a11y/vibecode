@@ -497,6 +497,100 @@ function renderAIResults(top3Plans, advice, isFallback, needs) {
   `;
 
   container.innerHTML = html;
+
+  // Them form tu van vao cuoi results container
+  const consultBox = document.createElement('div');
+  consultBox.id = 'lead-consult-box';
+  consultBox.className = 'mt-6 rounded-2xl border border-brand-200 bg-white p-5 shadow-sm';
+  consultBox.innerHTML = `
+    <h3 class="text-base font-bold text-slate-800 mb-1">Nhan tu van truc tiep tu chuyen gia</h3>
+    <p class="text-xs text-slate-500 mb-4">Dien thong tin de nhan vien cua chung toi lien he tu van mien phi trong vong 15 phut.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <input id="lead-name" type="text" placeholder="Ho va ten *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+      <input id="lead-phone" type="tel" placeholder="So dien thoai *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+      <input id="lead-email" type="email" placeholder="Email (tuy chon)" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
+    </div>
+    <button id="btn-submit-lead" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors">
+      Dang Ky Nhan Tu Van Mien Phi
+    </button>
+    <p id="lead-msg" class="mt-2 text-xs hidden"></p>
+  `;
+  container.appendChild(consultBox);
+
+  // Pre-fill neu da dang nhap
+  if (currentAuthUser) {
+    const nameEl = document.getElementById('lead-name');
+    const phoneEl = document.getElementById('lead-phone');
+    const emailEl = document.getElementById('lead-email');
+    if (nameEl) nameEl.value = currentAuthUser.fullName || '';
+    if (phoneEl) phoneEl.value = currentAuthUser.phone || '';
+    if (emailEl) emailEl.value = currentAuthUser.email || '';
+  }
+
+  document.getElementById('btn-submit-lead')?.addEventListener('click', async () => {
+    const nameVal = (document.getElementById('lead-name')?.value || '').trim();
+    const phoneVal = (document.getElementById('lead-phone')?.value || '').trim();
+    const emailVal = (document.getElementById('lead-email')?.value || '').trim();
+    const msgEl = document.getElementById('lead-msg');
+    const btn = document.getElementById('btn-submit-lead');
+
+    if (!nameVal || nameVal.length < 2) {
+      msgEl.textContent = 'Vui long nhap Ho ten (toi thieu 2 ky tu)';
+      msgEl.className = 'mt-2 text-xs text-red-600';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+    if (!phoneVal || phoneVal.length < 9) {
+      msgEl.textContent = 'Vui long nhap So dien thoai hop le';
+      msgEl.className = 'mt-2 text-xs text-red-600';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Dang gui...';
+    msgEl.classList.add('hidden');
+
+    try {
+      const bestPlanName = (window.PLANS_DATA || []).find(p => p.id === advice?.best?.planId)?.name || advice?.best?.planId || '';
+      const aiAdviceText = advice?.domainAdvice ? (advice.best?.reason || '') + ' ' + (advice.domainAdvice || '') : '';
+
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: nameVal,
+          phone: phoneVal,
+          email: emailVal,
+          siteType: needs?.siteType || '',
+          traffic: needs?.traffic || '',
+          budget: needs?.budget || 0,
+          needDomain: needs?.needDomain || false,
+          desiredDomain: needs?.desiredDomain || '',
+          preferredExtension: needs?.preferredExtension || '.vn',
+          recommendedPlan: bestPlanName,
+          aiAdvice: aiAdviceText.slice(0, 1000)
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        msgEl.textContent = 'Dang ky thanh cong! Nhan vien se lien he ban trong vong 15 phut.';
+        msgEl.className = 'mt-2 text-xs text-emerald-600 font-semibold';
+        msgEl.classList.remove('hidden');
+        btn.textContent = 'Da Dang Ky Tu Van';
+        btn.disabled = true;
+        btn.className = btn.className.replace('bg-brand-600 hover:bg-brand-700', 'bg-slate-400 cursor-not-allowed');
+      } else {
+        throw new Error(data.error || 'Loi he thong');
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Dang Ky Nhan Tu Van Mien Phi';
+      msgEl.textContent = 'Loi: ' + err.message;
+      msgEl.className = 'mt-2 text-xs text-red-600';
+      msgEl.classList.remove('hidden');
+    }
+  });
 }
 
 /**

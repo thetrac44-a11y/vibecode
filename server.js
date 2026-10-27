@@ -126,6 +126,99 @@ app.get('/api/catalog', async (req, res) => {
 });
 
 // ============================================================================
+// LEAD MANAGEMENT APIS (Quan ly Khach Hang Tiem Nang / Tu Van)
+// ============================================================================
+
+// POST /api/leads — Khach hang (bao gom guest) gui yeu cau tu van
+app.post('/api/leads', async (req, res) => {
+  try {
+    const {
+      customerName, phone, email,
+      siteType, traffic, budget, needDomain, desiredDomain, preferredExtension,
+      recommendedPlan, aiAdvice
+    } = req.body || {};
+
+    if (!customerName || String(customerName).trim().length < 2) {
+      return res.status(400).json({ ok: false, error: 'Vui long nhap Ho ten (toi thieu 2 ky tu)' });
+    }
+    if (!phone || String(phone).trim().length < 9) {
+      return res.status(400).json({ ok: false, error: 'Vui long nhap So dien thoai hop le' });
+    }
+
+    const leadId = crypto.randomUUID();
+    const newLead = {
+      id: leadId,
+      customer_name: String(customerName).trim(),
+      phone: String(phone).trim(),
+      email: String(email || '').trim(),
+      site_type: String(siteType || '').trim(),
+      traffic: String(traffic || '').trim(),
+      budget: Number(budget) || 0,
+      need_domain: Boolean(needDomain),
+      desired_domain: String(desiredDomain || '').trim(),
+      preferred_extension: String(preferredExtension || '.vn').trim(),
+      recommended_plan: String(recommendedPlan || '').trim(),
+      ai_advice: String(aiAdvice || '').trim().slice(0, 2000),
+      status: 'new',
+      assigned_to: '',
+      assigned_to_name: 'Chua phan cong',
+      notes: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const created = await db.createLead(newLead);
+    return res.json({ ok: true, lead: created });
+  } catch (err) {
+    console.error('POST /api/leads error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Loi he thong khi luu yeu cau tu van' });
+  }
+});
+
+// GET /api/leads — Admin/Staff lay danh sach leads
+app.get('/api/leads', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const leads = await db.getAllLeads();
+    return res.json({ ok: true, leads });
+  } catch (err) {
+    console.error('GET /api/leads error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Loi lay danh sach tu van' });
+  }
+});
+
+// PATCH /api/leads/:id — Admin/Staff cap nhat trang thai lead
+app.patch('/api/leads/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, assignedTo, assignedToName, notes } = req.body || {};
+
+    const validStatuses = ['new', 'contacted', 'converted', 'lost'];
+    const updated = await db.updateLead({
+      id,
+      status: validStatuses.includes(status) ? status : undefined,
+      assignedTo: assignedTo || '',
+      assignedToName: assignedToName || 'Chua phan cong',
+      notes: String(notes || '')
+    });
+    return res.json({ ok: true, lead: updated });
+  } catch (err) {
+    console.error('PATCH /api/leads/:id error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Loi cap nhat trang thai tu van' });
+  }
+});
+
+// DELETE /api/leads/:id — Admin xoa lead
+app.delete('/api/leads/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    await db.deleteLeadById(req.params.id);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /api/leads/:id error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Loi xoa yeu cau tu van' });
+  }
+});
+
+// ============================================================================
 // 3B. API ĐÁNH GIÁ THỰC TẾ CỦA KHÁCH HÀNG (REVIEWS CRUD TRÊN SUPABASE)
 // ============================================================================
 

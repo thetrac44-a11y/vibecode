@@ -185,3 +185,27 @@ VALUES
   ('vps-cloud-2', 'Cloud VPS Enterprise', 'Cloud VPS', 890000, '8 vCPU Dedicated', '16 GB DDR4', '250 GB NVMe RAID-10', '10 Gbps Unmetered', 'Không giới hạn (Root Access)', true, 'Snapshot + Offsite Backup', 'Kỹ sư trưởng trực chiến 24/7', false, 'Hệ thống lớn >20.000 lượt/ngày, портал tập đoàn, SaaS', '8 Core Dedicated • 16GB RAM • 250GB NVMe', '["Sàn thương mại điện tử lớn, hệ thống SaaS đa người dùng", "Website có trên 20.000 - 100.000 lượt truy cập mỗi ngày", "Cần IP tĩnh độc lập và tường lửa chống DDoS chuyên sâu"]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
+
+-- 9. BANG KHACH HANG TIEM NANG / YEU CAU TU VAN (leads)
+CREATE TABLE IF NOT EXISTS public.leads (
+  id TEXT PRIMARY KEY,
+  customer_name TEXT NOT NULL,
+  phone TEXT NOT NULL DEFAULT '',
+  email TEXT DEFAULT '',
+  site_type TEXT DEFAULT '',
+  traffic TEXT DEFAULT '',
+  budget NUMERIC DEFAULT 0,
+  need_domain BOOLEAN DEFAULT FALSE,
+  desired_domain TEXT DEFAULT '',
+  preferred_extension TEXT DEFAULT '.vn',
+  recommended_plan TEXT DEFAULT '',
+  ai_advice TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'converted', 'lost')),
+  assigned_to TEXT DEFAULT '',
+  assigned_to_name TEXT DEFAULT 'Chua phan cong',
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.leads DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.leads TO anon, authenticated, service_role;
