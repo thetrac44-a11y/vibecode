@@ -152,10 +152,10 @@ app.get('/api/catalog', async (req, res) => {
 });
 
 // ============================================================================
-// LEAD MANAGEMENT APIS (Quan ly Khach Hang Tiem Nang / Tu Van)
+// LEAD MANAGEMENT APIS (Quản lý Khách Hàng Tiềm Năng / Tư Vấn)
 // ============================================================================
 
-// POST /api/leads — Khach hang (bao gom guest) gui yeu cau tu van
+// POST /api/leads — Khách hàng (bao gồm khách vãng lai) gửi yêu cầu tư vấn
 app.post('/api/leads', async (req, res) => {
   try {
     const {
@@ -165,10 +165,10 @@ app.post('/api/leads', async (req, res) => {
     } = req.body || {};
 
     if (!customerName || String(customerName).trim().length < 2) {
-      return res.status(400).json({ ok: false, error: 'Vui long nhap Ho ten (toi thieu 2 ky tu)' });
+      return res.status(400).json({ ok: false, error: 'Vui lòng nhập Họ và tên (tối thiểu 2 ký tự)' });
     }
     if (!phone || String(phone).trim().length < 9) {
-      return res.status(400).json({ ok: false, error: 'Vui long nhap So dien thoai hop le' });
+      return res.status(400).json({ ok: false, error: 'Vui lòng nhập Số điện thoại hợp lệ' });
     }
 
     const leadId = crypto.randomUUID();
@@ -187,7 +187,7 @@ app.post('/api/leads', async (req, res) => {
       ai_advice: String(aiAdvice || '').trim().slice(0, 2000),
       status: 'new',
       assigned_to: '',
-      assigned_to_name: 'Chua phan cong',
+      assigned_to_name: 'Chưa phân công',
       notes: '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -197,22 +197,22 @@ app.post('/api/leads', async (req, res) => {
     return res.json({ ok: true, lead: created });
   } catch (err) {
     console.error('POST /api/leads error:', err.message);
-    return res.status(500).json({ ok: false, error: 'Loi he thong khi luu yeu cau tu van' });
+    return res.status(500).json({ ok: false, error: 'Lỗi hệ thống khi lưu yêu cầu tư vấn' });
   }
 });
 
-// GET /api/leads — Admin/Staff lay danh sach leads
+// GET /api/leads — Admin/Staff lấy danh sách leads
 app.get('/api/leads', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const leads = await db.getAllLeads();
     return res.json({ ok: true, leads });
   } catch (err) {
     console.error('GET /api/leads error:', err.message);
-    return res.status(500).json({ ok: false, error: 'Loi lay danh sach tu van' });
+    return res.status(500).json({ ok: false, error: 'Lỗi lấy danh sách tư vấn' });
   }
 });
 
-// PATCH /api/leads/:id — Admin/Staff cap nhat trang thai lead (Staff co RBAC nghiem ngat)
+// PATCH /api/leads/:id — Admin/Staff cập nhật trạng thái lead (Staff có RBAC nghiêm ngặt)
 app.patch('/api/leads/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,13 +221,12 @@ app.patch('/api/leads/:id', authenticateToken, requireRole(['admin', 'staff']), 
     let targetAssignedTo = assignedTo;
     let targetAssignedToName = assignedToName;
 
-    // RBAC: Staff khong duoc phan cong cho nguoi khac, chi duoc tu nhan lead ve minh
+    // RBAC: Staff không được phân công cho người khác, chỉ được tự nhận lead về mình
     if (req.user.role === 'staff') {
       if (action === 'claim' || assignedTo === req.user.id) {
         targetAssignedTo = req.user.id;
         targetAssignedToName = req.user.fullName || req.user.username;
       } else {
-        // Giu nguyen nguoi phu trach cu, khong cho phep Staff doi sang user khac
         targetAssignedTo = undefined;
         targetAssignedToName = undefined;
       }
@@ -244,18 +243,18 @@ app.patch('/api/leads/:id', authenticateToken, requireRole(['admin', 'staff']), 
     return res.json({ ok: true, lead: updated });
   } catch (err) {
     console.error('PATCH /api/leads/:id error:', err.message);
-    return res.status(500).json({ ok: false, error: 'Loi cap nhat trang thai tu van' });
+    return res.status(500).json({ ok: false, error: 'Lỗi cập nhật trạng thái tư vấn' });
   }
 });
 
-// POST /api/leads/:id/convert-to-order — Chuyen lead thanh don hang thuc te trong OMS
+// POST /api/leads/:id/convert-to-order — Chuyển lead thành đơn hàng thực tế trong OMS
 app.post('/api/leads/:id/convert-to-order', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const { id } = req.params;
     const allLeads = await db.getAllLeads();
     const lead = allLeads.find(l => l.id === id);
     if (!lead) {
-      return res.status(404).json({ ok: false, error: 'Khong tim thay lead tu van' });
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy yêu cầu tư vấn' });
     }
 
     const catalog = await db.getCatalogData();
@@ -269,7 +268,7 @@ app.post('/api/leads/:id/convert-to-order', authenticateToken, requireRole(['adm
     const planMonthlyPrice = Number(matchedPlan.price_monthly || matchedPlan.priceMonthly || 199000);
     const totalAmount = planMonthlyPrice * 12;
 
-    const bank = catalog.bankSettings || {};
+    const bank = catalog.bankSettings || catalog.settings || {};
     const bankId = bank.bankId || 'MB';
     const accountNo = bank.accountNo || '0988123456';
     const accountName = bank.accountName || 'CONG TY TNHH HOSTING ADVISOR';
@@ -301,41 +300,41 @@ app.post('/api/leads/:id/convert-to-order', authenticateToken, requireRole(['adm
       serviceDetails: null,
       assignedTo: req.user.id,
       assignedToName: req.user.fullName || req.user.username,
-      notes: `Chuyen doi tu Lead tu van [${lead.id}]. Nhu cau: ${lead.site_type || 'Kinh doanh'}`,
+      notes: `Chuyển đổi từ Lead tư vấn [${lead.id}]. Nhu cầu: ${lead.site_type || 'Kinh doanh'}`,
       timeline: [
         {
           time: new Date().toISOString(),
-          action: `Chuyen doi tu Lead tu van boi ${req.user.fullName || req.user.username}`,
+          action: `Chuyển đổi từ Lead tư vấn bởi ${req.user.fullName || req.user.username}`,
           by: req.user.fullName || req.user.username
         }
       ],
       createdAt: new Date().toISOString()
     });
 
-    // Cap nhat trang thai lead sang converted
+    // Cập nhật trạng thái lead sang converted
     await db.updateLead({
       id: lead.id,
       status: 'converted',
       assignedTo: req.user.id,
       assignedToName: req.user.fullName || req.user.username,
-      notes: (lead.notes ? lead.notes + ' | ' : '') + `Da tao don hang ${orderId}`
+      notes: (lead.notes ? lead.notes + ' | ' : '') + `Đã tạo đơn hàng ${orderId}`
     });
 
     return res.json({ ok: true, order: newOrder });
   } catch (err) {
     console.error('convert-to-order error:', err.message);
-    return res.status(500).json({ ok: false, error: 'Loi chuyen doi thanh don hang' });
+    return res.status(500).json({ ok: false, error: 'Lỗi chuyển đổi thành đơn hàng' });
   }
 });
 
-// DELETE /api/leads/:id — Admin xoa lead
+// DELETE /api/leads/:id — Admin xóa lead
 app.delete('/api/leads/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     await db.deleteLeadById(req.params.id);
     return res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/leads/:id error:', err.message);
-    return res.status(500).json({ ok: false, error: 'Loi xoa yeu cau tu van' });
+    return res.status(500).json({ ok: false, error: 'Lỗi xóa yêu cầu tư vấn' });
   }
 });
 
@@ -1134,27 +1133,27 @@ app.post('/api/advice/sales-script', authenticateToken, requireRole(['admin', 's
   try {
     const { orderId, leadId } = req.body || {};
 
-    // 1. Truong hop tao kich ban cho Lead Tu Van
+    // 1. Trường hợp tạo kịch bản cho Lead Tư Vấn
     if (leadId) {
       const allLeads = await db.getAllLeads();
       const lead = allLeads.find((l) => l.id === leadId);
       if (!lead) {
-        return res.status(404).json({ ok: false, error: 'Khong tim thay lead tu van.' });
+        return res.status(404).json({ ok: false, error: 'Không tìm thấy yêu cầu tư vấn.' });
       }
 
-      const prompt = `Ban la Truong phong Tu van Ha tang Hosting & Ten mien tai HostingAdvisor Viet Nam.
-Hay soan kich ban goi dien Telesale ngan gon 3 buoc cho nhan vien tu van de cham soc va chot don cho khach hang:
-- Ten khach hang: ${lead.customer_name} (SDT: ${lead.phone})
-- Loai website: ${lead.site_type || 'Website kinh doanh'}
-- Luu luong du kien: ${lead.traffic || 'Chua xac dinh'}
-- Ngan sach khach hang: ${lead.budget ? Number(lead.budget).toLocaleString('vi-VN') + 'd/thang' : 'Toi uu'}
-- Goi he thong de xuat: Goi ${lead.recommended_plan || 'Pro Business'}
-- Ten mien khach quan tam: ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : 'Chua dang ky'}
+      const prompt = `Bạn là Trưởng phòng Tư vấn Hạ tầng Hosting & Tên miền tại HostingAdvisor Việt Nam.
+Hãy soạn kịch bản gọi điện Telesale ngắn gọn 3 bước cho nhân viên tư vấn để chăm sóc và chốt đơn cho khách hàng:
+- Tên khách hàng: ${lead.customer_name} (SĐT: ${lead.phone})
+- Loại website: ${lead.site_type || 'Website kinh doanh'}
+- Lưu lượng dự kiến: ${lead.traffic || 'Chưa xác định'}
+- Ngân sách khách hàng: ${lead.budget ? Number(lead.budget).toLocaleString('vi-VN') + 'đ/tháng' : 'Tối ưu'}
+- Gói hệ thống đề xuất: Gói ${lead.recommended_plan || 'Business'}
+- Tên miền khách quan tâm: ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : 'Chưa đăng ký'}
 
-Yeu cau trinh bay dung 3 buoc ro rang, lich su, chuyen nghiep bang tieng Viet (tuyet doi KHONG dung icon hay emoji):
-Buoc 1 (Chao hoi & Nhan dien nhu cau): ...
-Buoc 2 (Giai thich loi ich ky thuat cua goi va uu dai kem theo): ...
-Buoc 3 (Kich hoat dat hang & Huong dan thanh toan VietQR de giu uu dai): ...`;
+Yêu cầu trình bày đúng 3 bước rõ ràng, lịch sự, chuyên nghiệp bằng tiếng Việt (tuyệt đối KHÔNG dùng icon hay emoji):
+Bước 1 (Chào hỏi & Nhận diện nhu cầu): ...
+Bước 2 (Giải thích lợi ích kỹ thuật của gói và ưu đãi kèm theo): ...
+Bước 3 (Kích hoạt đặt hàng & Hướng dẫn thanh toán VietQR để giữ ưu đãi): ...`;
 
       try {
         const aiScript = await callGeminiText(prompt);
@@ -1165,9 +1164,9 @@ Buoc 3 (Kich hoat dat hang & Huong dan thanh toan VietQR de giu uu dai): ...`;
         console.error('Gemini lead sales-script error:', err.message);
       }
 
-      const fallbackScript = `Buoc 1 (Chao hoi & Nhan dien nhu cau): Xin chao anh/chi ${lead.customer_name}, em la nhan vien tu van ky thuat tu HostingAdvisor Viet Nam. Em thay anh/chi vua quan tam den giai phap ha tang cho ${lead.site_type || 'website'} va dang can nhan tu van goi ${lead.recommended_plan || 'Pro Business'}. Em goi dien de ho tro truc tiep cho anh/chi a.
-Buoc 2 (Giai thich gia tri ky thuat): Voi quy mo truy cap va muc tieu cua anh/chi, goi ${lead.recommended_plan || 'Pro Business'} su dung o cung NVMe toc do cao va RAM doc lap giup website tai rat nhanh va khong bao gio bi nghen. Neu anh/chi dang ky chu ky 24 hoac 36 thang, he thong se chiet khau them 10% den 20% chi phi va mien phi luon ten mien ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : '.vn/.com'} trong nam dau.
-Buoc 3 (Ho tro tao don & Kich hoat ngay): Em xin phep tao luon don hang giu uu dai giup anh/chi ngay bay gio. Sau khi tao xong, anh/chi chi can mo hoa don quet ma VietQR tren dien thoai la he thong tu dong cap phat IP Hosting trong vong 3 phut a.`;
+      const fallbackScript = `Bước 1 (Chào hỏi & Nhận diện nhu cầu): Xin chào anh/chị ${lead.customer_name}, em là chuyên viên tư vấn kỹ thuật từ HostingAdvisor Việt Nam. Em thấy anh/chị vừa quan tâm đến giải pháp hạ tầng cho ${lead.site_type || 'website'} và đang cần nhận tư vấn gói ${lead.recommended_plan || 'Business'}. Em gọi điện để hỗ trợ trực tiếp cho anh/chị ạ.
+Bước 2 (Giải thích giá trị kỹ thuật): Với quy mô truy cập và mục tiêu của anh/chị, gói ${lead.recommended_plan || 'Business'} sử dụng ổ cứng NVMe tốc độ cao và RAM độc lập giúp website tải rất nhanh và không bao giờ bị nghẽn. Nếu anh/chị đăng ký chu kỳ 24 hoặc 36 tháng, hệ thống sẽ chiết khấu thêm 10% đến 20% chi phí và miễn phí luôn tên miền ${lead.desired_domain ? lead.desired_domain + (lead.preferred_extension || '.vn') : '.vn/.com'} trong năm đầu.
+Bước 3 (Hỗ trợ tạo đơn & Kích hoạt ngay): Em xin phép tạo luôn đơn hàng giữ ưu đãi giúp anh/chị ngay bây giờ. Sau khi tạo xong, anh/chị chỉ cần mở hóa đơn quét mã VietQR trên điện thoại là hệ thống tự động cấp phát IP Hosting trong vòng 3 phút ạ.`;
 
       return res.json({ ok: true, source: 'fallback', script: fallbackScript });
     }

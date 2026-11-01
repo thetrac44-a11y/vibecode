@@ -498,13 +498,13 @@ function renderAIResults(top3Plans, advice, isFallback, needs) {
 
   container.innerHTML = html;
 
-  // Them form tu van vao cuoi results container
+  // Thêm form tư vấn vào cuối results container
   const consultBox = document.createElement('div');
   consultBox.id = 'lead-consult-box';
   consultBox.className = 'mt-6 rounded-2xl border border-brand-200 bg-white p-5 shadow-sm';
   consultBox.innerHTML = `
-    <h3 class="text-base font-bold text-slate-800 mb-1">Nhan tu van truc tiep tu chuyen gia</h3>
-    <p class="text-xs text-slate-500 mb-4">Dien thong tin de nhan vien cua chung toi lien he tu van mien phi trong vong 15 phut.</p>
+    <h3 class="text-base font-bold text-slate-800 mb-1">Nhận tư vấn trực tiếp từ chuyên gia</h3>
+    <p class="text-xs text-slate-500 mb-4">Điền thông tin để chuyên viên kỹ thuật liên hệ tư vấn miễn phí trong vòng 15 phút.</p>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
       <input id="ai-lead-name" type="text" placeholder="Họ và tên *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />
       <input id="ai-lead-phone" type="tel" placeholder="Số điện thoại *" class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 w-full" />

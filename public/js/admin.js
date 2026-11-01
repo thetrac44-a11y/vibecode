@@ -988,16 +988,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ============================================================================
-  // LEAD MANAGEMENT — Quan ly Khach Hang Tiem Nang (RBAC Staff & Quick Actions)
+  // LEAD MANAGEMENT — Quản lý Khách Hàng Tiềm Năng (RBAC Staff & Quick Actions)
   // ============================================================================
 
   // Tab switching logic
   function switchAdminTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       if (btn.dataset.tab === tabName) {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-brand-600 text-white';
+        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white';
       } else {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-slate-600 hover:bg-slate-100';
+        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100';
       }
     });
     document.querySelectorAll('.tab-panel').forEach(panel => {
@@ -1019,10 +1019,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getLeadStatusLabel(status) {
     const map = {
-      new: 'Moi',
-      contacted: 'Da lien he',
-      converted: 'Da chot don',
-      lost: 'Khong tiep can'
+      new: 'Mới',
+      contacted: 'Đã liên hệ',
+      converted: 'Đã chốt đơn',
+      lost: 'Không tiếp cận'
     };
     return map[status] || status;
   }
@@ -1038,12 +1038,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatSiteType(val) {
-    const map = { blog: 'Blog / Ca nhan', company: 'Cong ty', ecommerce: 'Ban hang / TMDT', webapp: 'Web App / SaaS' };
+    const map = {
+      blog: 'Blog / Tin tức',
+      'gioi-thieu': 'Giới thiệu doanh nghiệp',
+      'ban-hang': 'Shop bán hàng / TMĐT',
+      company: 'Giới thiệu doanh nghiệp',
+      ecommerce: 'Shop bán hàng / TMĐT',
+      webapp: 'Web App / SaaS'
+    };
     return map[val] || val;
   }
 
   function formatTraffic(val) {
-    const map = { low: 'Thap (<1000)', medium: 'Vua (1K-10K)', high: 'Cao (10K-30K)', very_high: 'Rat cao (>30K)' };
+    const map = {
+      'duoi-1k': 'Dưới 1.000 lượt/tháng',
+      '1k-10k': '1.000 – 10.000 lượt/tháng',
+      '10k-50k': '10.000 – 50.000 lượt/tháng',
+      'tren-50k': 'Trên 50.000 lượt/tháng',
+      low: 'Thấp (<1.000)',
+      medium: 'Vừa (1K–10K)',
+      high: 'Cao (10K–30K)',
+      very_high: 'Rất cao (>30K)'
+    };
     return map[val] || val;
   }
 
@@ -1085,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = filterStatus === 'all' ? allLeads : allLeads.filter(l => l.status === filterStatus);
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Chua co yeu cau tu van nao.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Chưa có yêu cầu tư vấn nào.</td></tr>';
       return;
     }
 
@@ -1096,32 +1112,32 @@ document.addEventListener('DOMContentLoaded', () => {
       const isMine = adminUser && lead.assigned_to === adminUser.id;
       const isUnassigned = !lead.assigned_to;
 
-      // Render cot Nguoi Phu Trach
+      // Render cột Người Phụ Trách
       let assigneeHtml = '';
       if (isMine) {
-        assigneeHtml = `<span class="inline-block px-2.5 py-0.5 text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 rounded-full">Ban phu trach</span>`;
+        assigneeHtml = `<span class="inline-block px-2.5 py-0.5 text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 rounded-full">Bạn phụ trách</span>`;
       } else if (isUnassigned) {
         assigneeHtml = `
           <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400">Chua co</span>
+            <span class="text-xs text-slate-400">Chưa có</span>
             <button class="btn-quick-claim text-xs font-bold px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md transition-colors" data-lead-id="${lead.id}">
-              Nhan
+              Nhận
             </button>
           </div>
         `;
       } else {
-        assigneeHtml = `<span class="text-xs text-slate-600 font-medium">${escapeHtml(lead.assigned_to_name || 'Da phan cong')}</span>`;
+        assigneeHtml = `<span class="text-xs text-slate-600 font-medium">${escapeHtml(lead.assigned_to_name || 'Đã phân công')}</span>`;
       }
 
-      // Render cot Thao Tac Nhanh
-      const quickCallBtn = `<a href="tel:${escapeHtml(lead.phone || '')}" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap">Goi ${escapeHtml(lead.phone || '')}</a>`;
+      // Render cột Thao Tác Nhanh
+      const quickCallBtn = `<a href="tel:${escapeHtml(lead.phone || '')}" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap">Gọi ${escapeHtml(lead.phone || '')}</a>`;
       const quickContactedBtn = lead.status === 'new'
-        ? `<button class="btn-quick-contacted text-xs font-semibold px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Da goi</button>`
+        ? `<button class="btn-quick-contacted text-xs font-semibold px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Đã gọi</button>`
         : '';
       const quickConvertBtn = lead.status !== 'converted'
-        ? `<button class="btn-quick-convert text-xs font-bold px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chot don</button>`
-        : `<span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Da tao don</span>`;
-      const detailBtn = `<button class="btn-open-lead text-xs font-semibold px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chi tiet</button>`;
+        ? `<button class="btn-quick-convert text-xs font-bold px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chốt đơn</button>`
+        : `<span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Đã tạo đơn</span>`;
+      const detailBtn = `<button class="btn-open-lead text-xs font-semibold px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors whitespace-nowrap" data-lead-id="${lead.id}">Chi tiết</button>`;
 
       return `<tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
         <td class="px-4 py-3">
@@ -1132,11 +1148,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="px-4 py-3 text-xs text-slate-600">
           <p class="font-medium text-slate-700">${formatSiteType(lead.site_type)}</p>
           <p class="text-slate-400">${formatTraffic(lead.traffic)}</p>
-          ${lead.budget ? '<p class="text-slate-500">NS: ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/th</p>' : ''}
-          ${lead.desired_domain ? '<p class="text-brand-600 font-mono">Mien: ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
+          ${lead.budget ? '<p class="text-slate-500">Ngân sách: ' + Number(lead.budget).toLocaleString('vi-VN') + 'đ/tháng</p>' : ''}
+          ${lead.desired_domain ? '<p class="text-brand-600 font-mono">Miền: ' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</p>' : ''}
         </td>
         <td class="px-4 py-3">
-          <p class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-lg inline-block border border-brand-100">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</p>
+          <p class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-lg inline-block border border-brand-100">${escapeHtml(lead.recommended_plan || 'Chưa xác định')}</p>
         </td>
         <td class="px-4 py-3">
           <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}">${statusLabel}</span>
@@ -1155,12 +1171,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr>`;
     }).join('');
 
-    // Gan su kien cho cac nut trong bang
+    // Gán sự kiện cho các nút trong bảng
     tbody.querySelectorAll('.btn-open-lead').forEach(btn => {
       btn.addEventListener('click', () => openLeadModal(btn.dataset.leadId));
     });
 
-    // 1-Click: Nhan lead ngay tren bang
+    // 1-Click: Nhận lead ngay trên bảng
     tbody.querySelectorAll('.btn-quick-claim').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -1168,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // 1-Click: Danh dau da lien he ngay tren bang
+    // 1-Click: Đánh dấu đã liên hệ ngay trên bảng
     tbody.querySelectorAll('.btn-quick-contacted').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -1176,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // 1-Click: Chot don hang ngay tren bang
+    // 1-Click: Chốt đơn hàng ngay trên bảng
     tbody.querySelectorAll('.btn-quick-convert').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -1185,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 1-Click API: Nhan lead
+  // 1-Click API: Nhận lead
   async function quickClaimLead(leadId) {
     try {
       const res = await fetch('/api/leads/' + leadId, {
@@ -1207,14 +1223,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLeadsTable();
         updateLeadKPIs();
       } else {
-        alert(data.error || 'Khong the nhan lead');
+        alert(data.error || 'Không thể nhận lead này');
       }
     } catch (err) {
-      alert('Loi khi nhan lead: ' + err.message);
+      alert('Lỗi khi nhận lead: ' + err.message);
     }
   }
 
-  // 1-Click API: Cap nhat trang thai
+  // 1-Click API: Cập nhật trạng thái
   async function quickUpdateStatus(leadId, newStatus) {
     try {
       const res = await fetch('/api/leads/' + leadId, {
@@ -1232,13 +1248,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLeadKPIs();
       }
     } catch (err) {
-      alert('Loi cap nhat trang thai: ' + err.message);
+      alert('Lỗi cập nhật trạng thái: ' + err.message);
     }
   }
 
-  // 1-Click API: Chot don hang
+  // 1-Click API: Chốt đơn hàng
   async function quickConvertToOrder(leadId) {
-    if (!confirm('Xac nhan chot don va tao don hang chinh thuc cho khach hang nay?')) return;
+    if (!confirm('Xác nhận chốt đơn và tạo đơn hàng chính thức cho khách hàng này?')) return;
     try {
       const res = await fetch('/api/leads/' + leadId + '/convert-to-order', {
         method: 'POST',
@@ -1246,22 +1262,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.ok && data.order) {
-        alert(`Chot don thanh cong! Don hang moi da duoc tao: ${data.order.id} (${data.order.totalAmount ? Number(data.order.totalAmount).toLocaleString('vi-VN') + 'd' : ''}). Dang chuyen sang tab Don Hang.`);
-        // Cap nhat lead
+        alert(`Chốt đơn thành công! Đơn hàng mới đã được tạo: ${data.order.id} (${data.order.totalAmount ? Number(data.order.totalAmount).toLocaleString('vi-VN') + 'đ' : ''}). Đang chuyển sang tab Đơn Hàng.`);
         const idx = allLeads.findIndex(l => l.id === leadId);
         if (idx !== -1) {
           allLeads[idx].status = 'converted';
         }
         renderLeadsTable();
         updateLeadKPIs();
-        // Reload lai danh sach don hang va chuyen tab
         await loadStaffAndOrders();
         switchAdminTab('orders');
       } else {
-        alert(data.error || 'Loi khi chuyen doi thanh don hang');
+        alert(data.error || 'Lỗi khi chuyển đổi thành đơn hàng');
       }
     } catch (err) {
-      alert('Loi chot don: ' + err.message);
+      alert('Lỗi chốt đơn: ' + err.message);
     }
   }
 
@@ -1286,16 +1300,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (infoEl) {
       infoEl.innerHTML = `
         <div class="bg-slate-50 rounded-xl p-4 space-y-1.5 border border-slate-200">
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ma lead:</span> <span class="font-mono text-xs">${escapeHtml(lead.id)}</span></p>
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Ho ten:</span> <span class="font-bold text-slate-900">${escapeHtml(lead.customer_name)}</span></p>
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">So DT:</span> <a href="tel:${escapeHtml(lead.phone)}" class="text-brand-600 font-bold underline">${escapeHtml(lead.phone)}</a></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Mã Lead:</span> <span class="font-mono text-xs">${escapeHtml(lead.id)}</span></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Họ và tên:</span> <span class="font-bold text-slate-900">${escapeHtml(lead.customer_name)}</span></p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Số ĐT:</span> <a href="tel:${escapeHtml(lead.phone)}" class="text-brand-600 font-bold underline">${escapeHtml(lead.phone)}</a></p>
           ${lead.email ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Email:</span> ' + escapeHtml(lead.email) + '</p>' : ''}
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Loai web:</span> ${formatSiteType(lead.site_type)}</p>
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Luu luong:</span> ${formatTraffic(lead.traffic)}</p>
-          ${lead.budget ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ngan sach:</span> ' + Number(lead.budget).toLocaleString('vi-VN') + 'd/thang</p>' : ''}
-          ${lead.desired_domain ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ten mien:</span> <span class="font-mono text-brand-700 font-semibold">' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</span></p>' : ''}
-          <p><span class="font-semibold text-slate-600 w-28 inline-block">Goi de xuat:</span> <span class="text-brand-600 font-bold">${escapeHtml(lead.recommended_plan || 'Chua xac dinh')}</span></p>
-          ${lead.notes ? '<div class="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200"><p class="text-xs font-semibold text-amber-800 mb-0.5">Nhat ky ghi chu cu:</p><p class="text-xs text-amber-900">' + escapeHtml(lead.notes) + '</p></div>' : ''}
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Loại web:</span> ${formatSiteType(lead.site_type)}</p>
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Lưu lượng:</span> ${formatTraffic(lead.traffic)}</p>
+          ${lead.budget ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Ngân sách:</span> ' + Number(lead.budget).toLocaleString('vi-VN') + 'đ/tháng</p>' : ''}
+          ${lead.desired_domain ? '<p><span class="font-semibold text-slate-600 w-28 inline-block">Tên miền:</span> <span class="font-mono text-brand-700 font-semibold">' + escapeHtml(lead.desired_domain + (lead.preferred_extension || '')) + '</span></p>' : ''}
+          <p><span class="font-semibold text-slate-600 w-28 inline-block">Gói đề xuất:</span> <span class="text-brand-600 font-bold">${escapeHtml(lead.recommended_plan || 'Chưa xác định')}</span></p>
+          ${lead.notes ? '<div class="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200"><p class="text-xs font-semibold text-amber-800 mb-0.5">Nhật ký ghi chú cũ:</p><p class="text-xs text-amber-900">' + escapeHtml(lead.notes) + '</p></div>' : ''}
         </div>
       `;
     }
@@ -1323,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const assigneeSelect = document.getElementById('lead-assignee-select');
       if (assigneeSelect) {
-        assigneeSelect.innerHTML = '<option value="">Chua phan cong</option>';
+        assigneeSelect.innerHTML = '<option value="">Chưa phân công</option>';
         (staffUsers || []).forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.id;
@@ -1341,19 +1355,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const staffAssigneeName = document.getElementById('lead-staff-assignee-name');
       const staffClaimBtn = document.getElementById('btn-staff-claim-lead');
       if (staffAssigneeName) {
-        staffAssigneeName.textContent = lead.assigned_to_name || 'Chua co ai phu trach';
+        staffAssigneeName.textContent = lead.assigned_to_name || 'Chưa có ai phụ trách';
       }
       if (staffClaimBtn) {
         if (lead.assigned_to === adminUser.id) {
-          staffClaimBtn.textContent = 'Ban dang phu trach lead nay';
+          staffClaimBtn.textContent = 'Bạn đang phụ trách lead này';
           staffClaimBtn.disabled = true;
           staffClaimBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200';
         } else if (lead.assigned_to) {
-          staffClaimBtn.textContent = 'Da co nguoi khac phu trach';
+          staffClaimBtn.textContent = 'Đã có người khác phụ trách';
           staffClaimBtn.disabled = true;
           staffClaimBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed';
         } else {
-          staffClaimBtn.textContent = 'Nhan Cham Soc Khach Nay';
+          staffClaimBtn.textContent = 'Nhận Chăm Sóc Khách Này';
           staffClaimBtn.disabled = false;
           staffClaimBtn.className = 'bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors';
         }
@@ -1376,20 +1390,20 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLeadId = null;
   }
 
-  // Luu cap nhat tu Modal
+  // Lưu cập nhật từ Modal
   async function saveLeadUpdate() {
     if (!currentLeadId) return;
     const statusVal = document.getElementById('lead-status-select')?.value || 'new';
     const notesVal = document.getElementById('lead-notes-input')?.value || '';
     const saveMsg = document.getElementById('lead-save-msg');
     const saveBtn = document.getElementById('btn-save-lead');
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Dang luu...'; }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Đang lưu...'; }
 
     const payload = { status: statusVal, notes: notesVal };
     if (adminUser && adminUser.role === 'admin') {
       const assigneeEl = document.getElementById('lead-assignee-select');
       payload.assignedTo = assigneeEl?.value || '';
-      payload.assignedToName = assigneeEl?.options[assigneeEl.selectedIndex]?.textContent || 'Chua phan cong';
+      payload.assignedToName = assigneeEl?.options[assigneeEl.selectedIndex]?.textContent || 'Chưa phân công';
     }
 
     try {
@@ -1406,26 +1420,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderLeadsTable();
         updateLeadKPIs();
-        if (saveMsg) { saveMsg.textContent = 'Da luu thanh cong.'; saveMsg.className = 'text-xs text-emerald-600 mt-1 font-semibold'; saveMsg.classList.remove('hidden'); }
+        if (saveMsg) { saveMsg.textContent = 'Đã lưu cập nhật thành công.'; saveMsg.className = 'text-xs text-emerald-600 mt-1 font-semibold'; saveMsg.classList.remove('hidden'); }
         setTimeout(() => closeLeadModal(), 800);
       } else {
-        throw new Error(data.error || 'Loi he thong');
+        throw new Error(data.error || 'Lỗi hệ thống');
       }
     } catch (err) {
-      if (saveMsg) { saveMsg.textContent = 'Loi: ' + err.message; saveMsg.className = 'text-xs text-red-600 mt-1'; saveMsg.classList.remove('hidden'); }
+      if (saveMsg) { saveMsg.textContent = 'Lỗi: ' + err.message; saveMsg.className = 'text-xs text-red-600 mt-1'; saveMsg.classList.remove('hidden'); }
     } finally {
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Luu Cap Nhat'; }
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Lưu Cập Nhật'; }
     }
   }
 
-  // Xoa lead (Admin Only)
+  // Xóa lead (Admin Only)
   async function deleteLead() {
     if (!currentLeadId) return;
     if (adminUser && adminUser.role !== 'admin') {
-      alert('Chi Quan tri vien (Admin) moi co quyen xoa lead.');
+      alert('Chỉ Quản trị viên (Admin) mới có quyền xóa lead.');
       return;
     }
-    if (!confirm('Xac nhan xoa lead nay khoi he thong?')) return;
+    if (!confirm('Xác nhận xóa yêu cầu tư vấn này khỏi hệ thống?')) return;
     try {
       const res = await fetch('/api/leads/' + currentLeadId, {
         method: 'DELETE',
@@ -1439,17 +1453,17 @@ document.addEventListener('DOMContentLoaded', () => {
         closeLeadModal();
       }
     } catch (err) {
-      alert('Loi xoa lead: ' + err.message);
+      alert('Lỗi xóa lead: ' + err.message);
     }
   }
 
-  // AI Soan Kich Ban Telesale cho Lead
+  // AI Soạn Kịch Bản Telesale cho Lead
   async function generateLeadSalesScript() {
     if (!currentLeadId) return;
     const btn = document.getElementById('btn-lead-ai-script');
     const box = document.getElementById('lead-ai-script-box');
-    if (btn) { btn.disabled = true; btn.textContent = 'AI dang soan...'; }
-    if (box) { box.classList.remove('hidden'); box.textContent = 'Dang ket noi Gemini AI de tao kich ban 3 buoc...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'AI đang soạn...'; }
+    if (box) { box.classList.remove('hidden'); box.textContent = 'Đang kết nối Gemini AI để tạo kịch bản 3 bước...'; }
 
     try {
       const res = await fetch('/api/advice/sales-script', {
@@ -1461,12 +1475,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.ok && data.script) {
         if (box) box.textContent = data.script;
       } else {
-        if (box) box.textContent = 'Khong the tao kich ban AI: ' + (data.error || 'Loi mang');
+        if (box) box.textContent = 'Không thể tạo kịch bản AI: ' + (data.error || 'Lỗi mạng');
       }
     } catch (err) {
-      if (box) box.textContent = 'Loi ket noi: ' + err.message;
+      if (box) box.textContent = 'Lỗi kết nối: ' + err.message;
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'AI Soan Lai'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'AI Soạn Lại'; }
     }
   }
 
