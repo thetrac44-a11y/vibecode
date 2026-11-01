@@ -421,6 +421,23 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Mật khẩu phải có ít nhất 6 ký tự.' });
     }
 
+    const cleanPhone = String(phone).trim();
+    const phoneRegex = /^(0|\+84)\d{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng 0 hoặc +84).'
+      });
+    }
+
+    const cleanEmail = String(email || '').trim();
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Địa chỉ Email không đúng định dạng.'
+      });
+    }
+
     const existing = await db.getUserByUsername(cleanUsername);
     if (existing) {
       return res.status(409).json({

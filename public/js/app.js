@@ -972,9 +972,13 @@ function openAuthModal(defaultTab = 'login') {
   const formReg = document.getElementById('register-form');
   const demoHint = document.getElementById('demo-customer-hint');
   const title = document.getElementById('auth-modal-title');
+  const loginError = document.getElementById('login-error');
+  const registerError = document.getElementById('register-error');
 
   if (!modal) return;
   modal.classList.remove('hidden');
+  loginError?.classList.add('hidden');
+  registerError?.classList.add('hidden');
 
   if (defaultTab === 'register') {
     formLogin.classList.add('hidden');
@@ -1008,6 +1012,8 @@ function initAuthModal() {
   const registerForm = document.getElementById('register-form');
   const loginError = document.getElementById('login-error');
   const registerError = document.getElementById('register-error');
+  const submitLoginBtn = document.getElementById('btn-submit-login');
+  const submitRegBtn = document.getElementById('btn-submit-register');
 
   openBtn?.addEventListener('click', () => openAuthModal('login'));
   closeBtn?.addEventListener('click', closeAuthModal);
@@ -1025,10 +1031,8 @@ function initAuthModal() {
     localStorage.removeItem('ha_token');
     localStorage.removeItem('ha_admin_token');
     localStorage.removeItem('ha_last_buyer');
-    const loginUserEl = document.getElementById('login-username');
-    const loginPassEl = document.getElementById('login-password');
-    if (loginUserEl) loginUserEl.value = '';
-    if (loginPassEl) loginPassEl.value = '';
+    loginForm?.reset();
+    registerForm?.reset();
     updateNavbarAuthUI();
   });
 
@@ -1038,6 +1042,17 @@ function initAuthModal() {
 
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
+
+    if (!username || !password) {
+      loginError.textContent = 'Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu.';
+      loginError.classList.remove('hidden');
+      return;
+    }
+
+    if (submitLoginBtn) {
+      submitLoginBtn.disabled = true;
+      submitLoginBtn.textContent = 'Đang đăng nhập...';
+    }
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -1055,6 +1070,7 @@ function initAuthModal() {
       currentAuthToken = data.token;
       currentAuthUser = data.user;
       localStorage.setItem('ha_token', currentAuthToken);
+      loginForm.reset();
       updateNavbarAuthUI();
       closeAuthModal();
 
@@ -1066,6 +1082,11 @@ function initAuthModal() {
     } catch (err) {
       loginError.textContent = 'Lỗi kết nối máy chủ khi đăng nhập';
       loginError.classList.remove('hidden');
+    } finally {
+      if (submitLoginBtn) {
+        submitLoginBtn.disabled = false;
+        submitLoginBtn.textContent = 'Đăng Nhập';
+      }
     }
   });
 
@@ -1078,6 +1099,35 @@ function initAuthModal() {
     const phone = document.getElementById('reg-phone').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
+
+    if (!fullName || !username || !phone || !password) {
+      registerError.textContent = 'Vui lòng điền đầy đủ Họ tên, Tên đăng nhập, Số điện thoại và Mật khẩu.';
+      registerError.classList.remove('hidden');
+      return;
+    }
+
+    if (!/^(0|\+84)\d{9}$/.test(phone)) {
+      registerError.textContent = 'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 0 hoặc +84).';
+      registerError.classList.remove('hidden');
+      return;
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      registerError.textContent = 'Địa chỉ Email không đúng định dạng.';
+      registerError.classList.remove('hidden');
+      return;
+    }
+
+    if (password.length < 6) {
+      registerError.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.';
+      registerError.classList.remove('hidden');
+      return;
+    }
+
+    if (submitRegBtn) {
+      submitRegBtn.disabled = true;
+      submitRegBtn.textContent = 'Đang tạo tài khoản...';
+    }
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -1095,6 +1145,7 @@ function initAuthModal() {
       currentAuthToken = data.token;
       currentAuthUser = data.user;
       localStorage.setItem('ha_token', currentAuthToken);
+      registerForm.reset();
       updateNavbarAuthUI();
       closeAuthModal();
 
@@ -1106,6 +1157,11 @@ function initAuthModal() {
     } catch (err) {
       registerError.textContent = 'Lỗi kết nối máy chủ khi đăng ký';
       registerError.classList.remove('hidden');
+    } finally {
+      if (submitRegBtn) {
+        submitRegBtn.disabled = false;
+        submitRegBtn.textContent = 'Tạo Tài Khoản & Đăng Nhập';
+      }
     }
   });
 }
