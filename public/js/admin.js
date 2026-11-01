@@ -3,7 +3,7 @@
  * Logic Quản trị Đơn hàng (OMS), Phân quyền RBAC (Admin/Staff), Duyệt tiền VietQR, AI Telesale & Xuất CSV
  */
 
-let adminToken = localStorage.getItem('ha_admin_token') || '';
+let adminToken = localStorage.getItem('ha_admin_token') || localStorage.getItem('ha_token') || '';
 let adminUser = null;
 let allOrders = [];
 let staffUsers = [];
@@ -89,6 +89,21 @@ async function verifyAdminSession() {
   if (!adminToken) {
     syncAdminScreenUI();
     return;
+  }
+
+  // Hiển thị ngay Dashboard từ payload JWT để không bị trễ hay nháy màn hình đăng nhập
+  try {
+    const payloadPart = adminToken.split('.')[1];
+    if (payloadPart) {
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+      if (decoded && (decoded.role === 'admin' || decoded.role === 'staff')) {
+        adminUser = decoded;
+        syncAdminScreenUI();
+      }
+    }
+  } catch (e) {
+    // Bỏ qua nếu không giải mã tạm thời được, chờ /api/auth/me xác thực
   }
 
   try {
