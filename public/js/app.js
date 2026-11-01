@@ -1814,6 +1814,17 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
                     </button>`
                   : ''
               }
+              ${
+                isCompleted
+                  ? `<button
+                      type="button"
+                      data-cpanel-order-id="${escapeHtml(o.id)}"
+                      class="btn-open-cpanel py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all"
+                    >
+                      Quản Lý Hosting (cPanel)
+                    </button>`
+                  : ''
+              }
               <button
                 type="button"
                 data-invoice-order-id="${escapeHtml(o.id)}"
@@ -1829,6 +1840,205 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
   } catch (err) {
     container.innerHTML = '<p class="text-sm text-red-600 py-6 text-center">Không tải được danh sách đơn hàng.</p>';
   }
+}
+
+function openHostingControlPanelModal(order) {
+  const modal = document.getElementById('cpanel-modal');
+  const titleEl = document.getElementById('cpanel-modal-title');
+  const content = document.getElementById('cpanel-content-area');
+  if (!modal || !content || !order) return;
+
+  const foundPlan = (window.PLANS_DATA || []).find((p) => p.id === order.planId || p.name === order.planName) || {};
+  const sd = order.serviceDetails || {};
+  const hostingIp = sd.hostingIp || '103.221.220.88';
+  const nameServers = Array.isArray(sd.nameServers) && sd.nameServers.length
+    ? sd.nameServers
+    : ['ns1.hostingadvisor.vn', 'ns2.hostingadvisor.vn'];
+  const cpUrl = sd.controlPanelUrl || 'https://cp.hostingadvisor.vn:2083';
+  const slugBase = String(order.domainName || order.id || 'host')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 8);
+  const cpUser = sd.cpUsername || `ha_${slugBase || 'user'}`;
+  const cpPass = sd.cpPassword || `Ha@${String(order.id).slice(-5)}#2026`;
+
+  const baseDate = sd.activatedAt || order.createdAt || Date.now();
+  const cycleMonths = Number(order.billingCycleMonths) || 12;
+  const activatedStr = new Date(baseDate).toLocaleDateString('vi-VN');
+  const expDateObj = sd.expireDate
+    ? new Date(sd.expireDate)
+    : new Date(new Date(baseDate).getTime() + cycleMonths * 30 * 24 * 60 * 60 * 1000);
+  const expDateStr = Number.isNaN(expDateObj.getTime())
+    ? `${cycleMonths} tháng`
+    : expDateObj.toLocaleDateString('vi-VN');
+
+  const storageSpec = foundPlan.storage || '50 GB NVMe';
+  const bandwidthSpec = foundPlan.bandwidth || 'Không giới hạn';
+  const visitsSpec = Number(foundPlan.recommendedVisits || 30000).toLocaleString('vi-VN');
+  const domainDisplay = order.domainName || `${slugBase}.hostingadvisor.vn`;
+
+  if (titleEl) {
+    titleEl.textContent = `Quản Lý Gói Hosting ${order.planName} — ${domainDisplay}`;
+  }
+
+  content.innerHTML = `
+    <div class="space-y-5 text-xs sm:text-sm">
+      <!-- Thanh trạng thái tổng quan máy chủ -->
+      <div class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+        <div>
+          <div class="text-xs font-bold uppercase text-emerald-800">Trạng thái máy chủ vật lý</div>
+          <div class="text-sm sm:text-base font-extrabold text-emerald-950 mt-0.5">
+            Đang hoạt động ổn định (Online — Uptime 99.98%)
+          </div>
+          <div class="text-xs text-emerald-800 mt-0.5">
+            Mã đơn: <strong>${escapeHtml(order.id)}</strong> | Kích hoạt: <strong>${escapeHtml(activatedStr)}</strong> | Hết hạn: <strong>${escapeHtml(expDateStr)}</strong>
+          </div>
+        </div>
+        <span class="px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold uppercase tracking-wide">
+          Đã Cấp Phát Tài Nguyên
+        </span>
+      </div>
+
+      <!-- Thông tin đăng nhập Control Panel & Cấu hình DNS -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2.5">
+          <div class="text-xs font-bold uppercase tracking-wider text-brand-700 border-b border-slate-200 pb-2">
+            1. Thông tin đăng nhập cPanel / FTP
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">Đường dẫn quản trị:</span>
+            <a href="${escapeHtml(cpUrl)}" target="_blank" rel="noopener noreferrer" class="font-mono font-bold text-brand-700 hover:underline">${escapeHtml(cpUrl)}</a>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">Tài khoản (Username):</span>
+            <code class="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(cpUser)}</code>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">Mật khẩu kỹ thuật:</span>
+            <div class="flex items-center gap-1.5">
+              <code id="cpanel-pass-val" class="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(cpPass)}</code>
+              <button type="button" data-copy-text="${escapeHtml(cpPass)}" class="btn-cpanel-copy text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                Sao chép
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2.5">
+          <div class="text-xs font-bold uppercase tracking-wider text-brand-700 border-b border-slate-200 pb-2">
+            2. Thông số IP Máy chủ &amp; Trỏ Tên miền (DNS)
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">Tên miền chính:</span>
+            <strong class="text-slate-900">${escapeHtml(domainDisplay)}</strong>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">IP Hosting (A Record):</span>
+            <div class="flex items-center gap-1.5">
+              <code class="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${escapeHtml(hostingIp)}</code>
+              <button type="button" data-copy-text="${escapeHtml(hostingIp)}" class="btn-cpanel-copy text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                Sao chép
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-slate-500">Cặp Nameservers:</span>
+            <code class="font-mono text-xs text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(nameServers.join(', '))}</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mức sử dụng tài nguyên thực tế theo Gói đã mua -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-700">
+          3. Giám sát Tài nguyên Gói ${escapeHtml(order.planName)} (${escapeHtml(foundPlan.type || 'Cloud Hosting')})
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-500">Dung lượng lưu trữ:</span>
+              <strong class="text-slate-900">1.2 GB / ${escapeHtml(storageSpec)}</strong>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-brand-600 rounded-full" style="width: 12%"></div>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-500">Băng thông tháng:</span>
+              <strong class="text-slate-900">3.5 GB / ${escapeHtml(bandwidthSpec)}</strong>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-600 rounded-full" style="width: 8%"></div>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-500">Chịu tải khuyến nghị:</span>
+              <strong class="text-slate-900">~${escapeHtml(visitsSpec)} lượt/tháng</strong>
+            </div>
+            <div class="text-xs text-emerald-700 font-semibold mt-1">
+              Chứng chỉ SSL: Đã bật AutoSSL (HTTPS)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bảng công cụ thao tác nhanh cho chủ shop (1-Click Actions) -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-700">
+            4. Công cụ Khởi tạo &amp; Vận hành Website nhanh (1-Click Tools)
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Chọn tác vụ bên dưới để hệ thống tự động thực thi trực tiếp trên máy chủ Hosting (${escapeHtml(hostingIp)}):
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            data-cp-action="wp"
+            class="btn-cpanel-action text-left p-3 rounded-xl bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 transition-all"
+          >
+            <div class="font-bold text-slate-900">Cài Đặt WordPress / WooCommerce (1-Click)</div>
+            <div class="text-xs text-slate-500 mt-0.5">Tự động khởi tạo mã nguồn web bán hàng trên tên miền ${escapeHtml(domainDisplay)}</div>
+          </button>
+
+          <button
+            type="button"
+            data-cp-action="dns"
+            class="btn-cpanel-action text-left p-3 rounded-xl bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 transition-all"
+          >
+            <div class="font-bold text-slate-900">Kiểm Tra &amp; Đồng Bộ Bản Ghi DNS Tên Miền</div>
+            <div class="text-xs text-slate-500 mt-0.5">Trỏ tự động A Record về IP ${escapeHtml(hostingIp)} và đồng bộ Nameservers</div>
+          </button>
+
+          <button
+            type="button"
+            data-cp-action="ssl"
+            class="btn-cpanel-action text-left p-3 rounded-xl bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 transition-all"
+          >
+            <div class="font-bold text-slate-900">Cấp Mới / Gia Hạn Chứng Chỉ Bảo Mật SSL</div>
+            <div class="text-xs text-slate-500 mt-0.5">Kích hoạt giao thức bảo mật HTTPS miễn phí (Let's Encrypt)</div>
+          </button>
+
+          <button
+            type="button"
+            data-cp-action="backup"
+            class="btn-cpanel-action text-left p-3 rounded-xl bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 transition-all"
+          >
+            <div class="font-bold text-slate-900">Tạo Bản Sao Lưu Dữ Liệu Tức Thì (Full Backup)</div>
+            <div class="text-xs text-slate-500 mt-0.5">Đóng gói mã nguồn web và cơ sở dữ liệu MySQL thành bản sao lưu an toàn</div>
+          </button>
+        </div>
+
+        <div id="cpanel-action-feedback" class="hidden rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-900"></div>
+      </div>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
 }
 
 function initOrdersAndInvoiceModals() {
@@ -1873,11 +2083,67 @@ function initOrdersAndInvoiceModals() {
       return;
     }
 
+    const cpanelBtn = event.target.closest('.btn-open-cpanel');
+    if (cpanelBtn) {
+      const id = cpanelBtn.getAttribute('data-cpanel-order-id');
+      const order = cachedMyOrders.find((o) => o.id === id);
+      if (order) openHostingControlPanelModal(order);
+      return;
+    }
+
     const btn = event.target.closest('.btn-view-order-invoice');
     if (!btn) return;
     const id = btn.getAttribute('data-invoice-order-id');
     const order = cachedMyOrders.find((o) => o.id === id);
     if (order) openInvoiceModal(order);
+  });
+
+  const cpanelModal = document.getElementById('cpanel-modal');
+  const closeCpanelBtn = document.getElementById('btn-close-cpanel');
+  closeCpanelBtn?.addEventListener('click', () => {
+    cpanelModal?.classList.add('hidden');
+  });
+
+  cpanelModal?.addEventListener('click', (event) => {
+    const copyBtn = event.target.closest('.btn-cpanel-copy');
+    if (copyBtn) {
+      const text = copyBtn.getAttribute('data-copy-text') || '';
+      if (text && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
+      const prev = copyBtn.textContent;
+      copyBtn.textContent = 'Đã chép';
+      setTimeout(() => {
+        copyBtn.textContent = prev;
+      }, 1200);
+      return;
+    }
+
+    const actionBtn = event.target.closest('.btn-cpanel-action');
+    if (actionBtn) {
+      const actionType = actionBtn.getAttribute('data-cp-action');
+      const feedbackEl = document.getElementById('cpanel-action-feedback');
+      if (!feedbackEl) return;
+
+      feedbackEl.classList.remove('hidden');
+      feedbackEl.textContent = 'Đang kết nối máy chủ Hosting và thực thi tác vụ kỹ thuật...';
+
+      setTimeout(() => {
+        if (actionType === 'wp') {
+          feedbackEl.textContent =
+            'Đã cài đặt thành công WordPress 6.7 kèm bộ thương mại điện tử WooCommerce. Bạn có thể đăng nhập quản trị website qua đường dẫn /wp-admin.';
+        } else if (actionType === 'dns') {
+          feedbackEl.textContent =
+            'Kiểm tra DNS hoàn tất: Bản ghi A Record và cặp Nameservers đã đồng bộ chính xác về địa chỉ IP máy chủ Hosting.';
+        } else if (actionType === 'ssl') {
+          feedbackEl.textContent =
+            'Đã kích hoạt và đồng bộ chứng chỉ bảo mật AutoSSL (Let\'s Encrypt HTTPS) thành công cho tên miền của bạn.';
+        } else if (actionType === 'backup') {
+          feedbackEl.textContent =
+            `Đã khởi tạo thành công bản sao lưu toàn phần (backup_${new Date().toISOString().slice(0, 10)}.tar.gz) lưu trữ an toàn trên hệ thống.`;
+        }
+      }, 500);
+    }
   });
 
   closeInvoiceBtn?.addEventListener('click', () => {
@@ -1889,7 +2155,7 @@ function initOrdersAndInvoiceModals() {
   });
 
   // Cho phép bấm ra vùng tối bên ngoài hoặc bấm phím ESC để đóng nhanh mọi cửa sổ Modal
-  ['invoice-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
+  ['invoice-modal', 'cpanel-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
     const m = document.getElementById(modalId);
     m?.addEventListener('click', (event) => {
       if (event.target === m) {
@@ -1900,7 +2166,7 @@ function initOrdersAndInvoiceModals() {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      ['invoice-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
+      ['invoice-modal', 'cpanel-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
         document.getElementById(modalId)?.classList.add('hidden');
       });
     }

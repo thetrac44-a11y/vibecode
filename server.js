@@ -1012,10 +1012,16 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
           const randomOctet = Math.floor(Math.random() * 200) + 20;
           const cycleMonths = Number(order.billingCycleMonths) || 12;
           const expireDateIso = new Date(Date.now() + cycleMonths * 30 * 24 * 60 * 60 * 1000).toISOString();
+          const slugBase = String(order.domainName || order.id || 'host')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, 8);
           order.serviceDetails = {
             hostingIp: `103.221.220.${randomOctet}`,
             nameServers: ['ns1.hostingadvisor.vn', 'ns2.hostingadvisor.vn'],
             controlPanelUrl: `https://cp.hostingadvisor.vn:2083`,
+            cpUsername: `ha_${slugBase || 'user'}`,
+            cpPassword: `Ha@${String(order.id).slice(-5)}#2026`,
             activatedAt: nowIso,
             expireDate: expireDateIso
           };
