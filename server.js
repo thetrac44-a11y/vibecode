@@ -962,16 +962,26 @@ app.post('/api/orders', async (req, res) => {
       customerName = '',
       phone = '',
       email = '',
-      notes = ''
+      notes = '',
+      createdByStaff = false
     } = req.body || {};
 
     const catalog = await db.getCatalogData();
     const tokenUser = extractUserFromHeader(req);
     const dbUser = tokenUser ? await db.getUserById(tokenUser.id) : null;
+    const isStaffOrderCreation = Boolean(
+      createdByStaff && dbUser && (dbUser.role === 'admin' || dbUser.role === 'staff')
+    );
 
-    const finalCustomerName = String(customerName || dbUser?.fullName || '').trim();
-    const finalPhone = String(phone || dbUser?.phone || '').trim();
-    const finalEmail = String(email || dbUser?.email || '').trim();
+    const finalCustomerName = String(
+      customerName || (!isStaffOrderCreation ? dbUser?.fullName : '') || ''
+    ).trim();
+    const finalPhone = String(
+      phone || (!isStaffOrderCreation ? dbUser?.phone : '') || ''
+    ).trim();
+    const finalEmail = String(
+      email || (!isStaffOrderCreation ? dbUser?.email : '') || ''
+    ).trim();
 
     if (!finalCustomerName || !finalPhone) {
       return res.status(400).json({
@@ -1070,10 +1080,12 @@ app.post('/api/orders', async (req, res) => {
     const accountName = catalog.settings?.accountName || process.env.VIETQR_ACCOUNT_NAME || 'CONG TY TNHH HOSTING ADVISOR';
     const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${totalAmount}&addInfo=${encodeURIComponent(orderId)}&accountName=${encodeURIComponent(accountName)}`;
 
+    const staffActorName = isStaffOrderCreation ? (dbUser.fullName || dbUser.username) : null;
+
     const newOrder = await db.createOrder({
       id: orderId,
       invoiceId,
-      userId: dbUser ? dbUser.id : null,
+      userId: !isStaffOrderCreation && dbUser ? dbUser.id : null,
       customerName: finalCustomerName,
       phone: finalPhone,
       email: finalEmail,
@@ -1094,14 +1106,16 @@ app.post('/api/orders', async (req, res) => {
       status: 'pending_payment',
       qrUrl,
       serviceDetails: null,
-      assignedTo: null,
-      assignedToName: 'Chưa phân công',
+      assignedTo: isStaffOrderCreation ? dbUser.id : null,
+      assignedToName: isStaffOrderCreation ? staffActorName : 'Chưa phân công',
       notes: String(notes || '').trim(),
       timeline: [
         {
           time: nowIso,
-          action: `Khách hàng tạo đơn mua hàng, chờ thanh toán VietQR (Tổng thanh toán: ${totalAmount.toLocaleString('vi-VN')}đ)`,
-          by: finalCustomerName
+          action: isStaffOrderCreation
+            ? `Nhân sự ${staffActorName} tạo đơn hàng hộ khách qua điện thoại, chờ thanh toán VietQR (Tổng thanh toán: ${totalAmount.toLocaleString('vi-VN')}đ)`
+            : `Khách hàng tạo đơn mua hàng, chờ thanh toán VietQR (Tổng thanh toán: ${totalAmount.toLocaleString('vi-VN')}đ)`,
+          by: isStaffOrderCreation ? staffActorName : finalCustomerName
         }
       ],
       createdAt: nowIso
@@ -1238,8 +1252,30 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
     const actorName = req.user.fullName || req.user.username;
     order.timeline = Array.isArray(order.timeline) ? order.timeline : [];
 
-    // 1. Nghiệp vụ 1-Click Nhận đơn (Self-Claim) cho Staff/Admin
-    if (action === 'claim') {
+    // 1. Nghiệp vụ 1-Click Nhận đơn (Self-Claim) hoặc Reset mật khẩu cPanel cho Staff/Admin
+    if (action === 'reset_cpanel_password') {
+      if (!order.serviceDetails) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Đơn hàng chưa được kích hoạt dịch vụ Hosting nên chưa có tài khoản cPanel.'
+        });
+      }
+      const randDigits = Math.floor(1000 + Math.random() * 9000);
+      const newCpPassword = `Ha@${String(order.id).slice(-4)}#${randDigits}`;
+      order.serviceDetails = {
+        ...order.serviceDetails,
+        cpPassword: newCpPassword
+      };
+      if (!order.assignedTo) {
+        order.assignedTo = req.user.id;
+        order.assignedToName = actorName;
+      }
+      order.timeline.push({
+        time: nowIso,
+        action: `Cấp lại mật khẩu Control Panel (cPanel) mới cho khách hàng (${newCpPassword})`,
+        by: actorName
+      });
+    } else if (action === 'claim') {
       if (order.assignedTo && order.assignedTo !== req.user.id && req.user.role !== 'admin') {
         return res.status(400).json({
           ok: false,

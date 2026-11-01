@@ -183,6 +183,47 @@
         </div>
       </div>
 
+      <!-- Bảng Thống Kê Hiệu Suất & Hoa Hồng Cá Nhân (Staff & Admin) -->
+      <div id="staff-personal-kpi-bar" class="bg-slate-900 text-white rounded-2xl border border-slate-800 p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-slate-800 mb-3.5">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-300">Thống Kê Hiệu Suất Cá Nhân</span>
+            <h3 class="text-sm sm:text-base font-bold text-white">
+              Kết Quả Xử Lý Đơn &amp; Hoa Hồng Dự Kiến Của <span id="my-kpi-staff-name" class="text-brand-300">Bạn</span>
+            </h3>
+          </div>
+          <button
+            type="button"
+            id="btn-quick-filter-mine"
+            class="py-1.5 px-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold transition-colors self-start sm:self-auto"
+          >
+            Chỉ Xem Đơn Của Tôi
+          </button>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div class="rounded-xl bg-slate-800/90 border border-slate-700 p-3.5">
+            <div class="text-slate-400 font-medium">Đơn Bạn Phụ Trách</div>
+            <div id="my-kpi-orders" class="text-lg sm:text-xl font-extrabold text-white mt-1">0 / 0 đơn</div>
+            <div class="text-slate-400 mt-0.5">Đã kích hoạt / Tổng nhận</div>
+          </div>
+          <div class="rounded-xl bg-slate-800/90 border border-slate-700 p-3.5">
+            <div class="text-slate-400 font-medium">Doanh Thu Cá Nhân</div>
+            <div id="my-kpi-revenue" class="text-lg sm:text-xl font-extrabold text-emerald-400 mt-1">0đ</div>
+            <div class="text-slate-400 mt-0.5">Tổng đơn đã kích hoạt của bạn</div>
+          </div>
+          <div class="rounded-xl bg-slate-800/90 border border-slate-700 p-3.5">
+            <div class="text-slate-400 font-medium">Hoa Hồng Dự Kiến (5%)</div>
+            <div id="my-kpi-commission" class="text-lg sm:text-xl font-extrabold text-amber-400 mt-1">0đ</div>
+            <div class="text-slate-400 mt-0.5">Thưởng doanh số thực nhận</div>
+          </div>
+          <div class="rounded-xl bg-slate-800/90 border border-slate-700 p-3.5">
+            <div class="text-slate-400 font-medium">Tỷ Lệ Chốt Lead Tư Vấn</div>
+            <div id="my-kpi-conversion" class="text-lg sm:text-xl font-extrabold text-brand-300 mt-1">0% (0/0)</div>
+            <div class="text-slate-400 mt-0.5">Lead đã chuyển thành đơn</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Khung Bộ Lọc & Bảng Quản Lý Đơn Hàng -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 sm:p-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
@@ -222,6 +263,14 @@
               <option value="mine">Đơn của tôi phụ trách</option>
               <option value="unassigned">Chưa phân công</option>
             </select>
+
+            <button
+              type="button"
+              id="btn-open-quick-order"
+              class="py-2 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shadow-2xs"
+            >
+              + Tạo Đơn Hộ Khách
+            </button>
 
             <button
               type="button"
@@ -664,6 +713,37 @@
             </button>
           </div>
 
+          <!-- Bộ Công Cụ Tác Nghiệp CSKH & Kỹ Thuật 1-Click -->
+          <div id="detail-staff-tools-box" class="rounded-xl border border-brand-200 bg-brand-50/40 p-4 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-brand-800">Công Cụ CSKH &amp; Kỹ Thuật 1-Click</span>
+              <span id="detail-tool-feedback" class="hidden text-xs font-semibold text-emerald-700"></span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                id="btn-copy-payment-reminder"
+                class="py-2 px-3 rounded-xl bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 text-xs font-semibold transition-colors"
+              >
+                Copy Tin Nhắn Nhắc Thanh Toán (Zalo/SMS)
+              </button>
+              <button
+                type="button"
+                id="btn-copy-handover-info"
+                class="hidden py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+              >
+                Copy Bản Tin Bàn Giao Hosting
+              </button>
+              <button
+                type="button"
+                id="btn-reset-cpanel-pass"
+                class="hidden py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors"
+              >
+                Cấp Lại Mật Khẩu cPanel Mới
+              </button>
+            </div>
+          </div>
+
           <!-- Form Cập nhật Trạng thái, Phân công nhân sự (Admin) & Ghi chú -->
           <div class="rounded-xl border border-slate-200 p-4 space-y-3.5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -764,6 +844,142 @@
 
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL TẠO ĐƠN HÀNG HỘ KHÁCH QUA ĐIỆN THOẠI (POS TELESALE)
+       ========================================== -->
+  <div
+    id="quick-order-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-7 my-8 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Nghiệp vụ Telesale &amp; CSKH</span>
+          <h3 class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
+            Tạo Đơn Hàng Hộ Khách Qua Điện Thoại
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Đơn tạo ra sẽ tự động gắn tên bạn phụ trách và sinh mã VietQR để gửi cho khách thanh toán.
+          </p>
+        </div>
+        <button type="button" id="btn-close-quick-order-modal" class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg bg-slate-100">
+          Đóng
+        </button>
+      </div>
+
+      <form id="quick-order-form" class="space-y-4 text-xs sm:text-sm" novalidate>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="qo-customer-name" class="block text-xs font-semibold text-slate-700 mb-1">Họ và tên khách hàng <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="qo-customer-name"
+              placeholder="VD: Nguyễn Văn An"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="qo-phone" class="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="qo-phone"
+              placeholder="VD: 0912345678"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="qo-email" class="block text-xs font-semibold text-slate-700 mb-1">Email nhận thông tin bàn giao Hosting</label>
+          <input
+            type="email"
+            id="qo-email"
+            placeholder="khachhang@congty.vn"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="qo-plan" class="block text-xs font-semibold text-slate-700 mb-1">Chọn Gói Hosting <span class="text-red-500">*</span></label>
+            <select
+              id="qo-plan"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold focus:border-brand-600 focus:outline-none"
+            >
+              <option value="starter">Gói Starter (79.000đ/tháng)</option>
+              <option value="pro" selected>Gói Pro (199.000đ/tháng)</option>
+              <option value="business">Gói Business (399.000đ/tháng - Tặng miền)</option>
+              <option value="enterprise">Gói Enterprise (799.000đ/tháng - Tặng miền)</option>
+            </select>
+          </div>
+          <div>
+            <label for="qo-cycle" class="block text-xs font-semibold text-slate-700 mb-1">Chu kỳ thanh toán <span class="text-red-500">*</span></label>
+            <select
+              id="qo-cycle"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold focus:border-brand-600 focus:outline-none"
+            >
+              <option value="12">12 tháng (Tiêu chuẩn)</option>
+              <option value="24">24 tháng (Chiết khấu 10%)</option>
+              <option value="36">36 tháng (Chiết khấu 20%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="qo-domain" class="block text-xs font-semibold text-slate-700 mb-1">Tên miền đăng ký kèm (Tùy chọn)</label>
+            <input
+              type="text"
+              id="qo-domain"
+              placeholder="VD: thuonghieuviet.vn"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="qo-coupon" class="block text-xs font-semibold text-slate-700 mb-1">Mã giảm giá áp dụng (Nếu có)</label>
+            <input
+              type="text"
+              id="qo-coupon"
+              placeholder="VD: VIBECODE15"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 uppercase font-mono focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="qo-notes" class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú yêu cầu của khách hàng</label>
+          <textarea
+            id="qo-notes"
+            rows="2"
+            placeholder="VD: Khách đặt qua hotline, nhờ cài sẵn WordPress sau khi chuyển khoản..."
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+          ></textarea>
+        </div>
+
+        <p id="qo-error-msg" class="hidden text-xs font-semibold text-red-600"></p>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <button
+            type="button"
+            id="btn-cancel-quick-order"
+            class="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold transition-colors"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            type="submit"
+            id="btn-submit-quick-order"
+            class="py-2.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-colors"
+          >
+            Tạo Đơn &amp; Lấy Mã VietQR
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -10,6 +10,7 @@ if ('scrollRestoration' in window.history) {
 window.scrollTo(0, 0);
 let adminUser = null;
 let allOrders = [];
+let allLeads = [];
 let staffUsers = [];
 let allCoupons = [];
 let allReviews = [];
@@ -139,14 +140,22 @@ async function loadStaffAndOrders() {
     const requests = [
       fetch('/api/users/staff', { headers: { Authorization: `Bearer ${adminToken}` } }),
       fetch('/api/orders', { headers: { Authorization: `Bearer ${adminToken}` } }),
-      fetch('/api/catalog')
+      fetch('/api/catalog'),
+      fetch('/api/leads', { headers: { Authorization: `Bearer ${adminToken}` } })
     ];
 
     if (adminUser?.role === 'admin') {
       requests.push(fetch('/api/admin/coupons', { headers: { Authorization: `Bearer ${adminToken}` } }));
     }
 
-    const [staffRes, ordersRes, catalogRes, couponsRes] = await Promise.all(requests);
+    const [staffRes, ordersRes, catalogRes, leadsRes, couponsRes] = await Promise.all(requests);
+
+    if (leadsRes && leadsRes.ok) {
+      const lData = await leadsRes.json();
+      if (lData.ok && Array.isArray(lData.leads)) {
+        allLeads = lData.leads;
+      }
+    }
 
     if (staffRes.ok) {
       const sData = await staffRes.json();
@@ -372,6 +381,33 @@ function updateKPIs() {
   document.getElementById('kpi-pending-revenue').textContent = formatVND(pendingRevenue);
   document.getElementById('kpi-pending-count').textContent = String(pendingCount);
   document.getElementById('kpi-total-orders').textContent = String(allOrders.length);
+  updatePersonalKPIs();
+}
+
+function updatePersonalKPIs() {
+  const staffNameEl = document.getElementById('my-kpi-staff-name');
+  const myOrdersEl = document.getElementById('my-kpi-orders');
+  const myRevenueEl = document.getElementById('my-kpi-revenue');
+  const myCommissionEl = document.getElementById('my-kpi-commission');
+  const myConversionEl = document.getElementById('my-kpi-conversion');
+
+  if (staffNameEl) {
+    staffNameEl.textContent = adminUser?.fullName || adminUser?.username || 'Bạn';
+  }
+
+  const myOrders = allOrders.filter((o) => adminUser && o.assignedTo === adminUser.id);
+  const myCompletedOrders = myOrders.filter((o) => o.status === 'completed' || o.paymentStatus === 'paid');
+  const myRevenue = myCompletedOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const myCommission = Math.round(myRevenue * 0.05);
+
+  const myLeads = allLeads.filter((l) => adminUser && l.assigned_to === adminUser.id);
+  const myConvertedLeads = myLeads.filter((l) => l.status === 'converted');
+  const conversionRate = myLeads.length > 0 ? Math.round((myConvertedLeads.length / myLeads.length) * 100) : 0;
+
+  if (myOrdersEl) myOrdersEl.textContent = `${myCompletedOrders.length} / ${myOrders.length} đơn`;
+  if (myRevenueEl) myRevenueEl.textContent = formatVND(myRevenue);
+  if (myCommissionEl) myCommissionEl.textContent = formatVND(myCommission);
+  if (myConversionEl) myConversionEl.textContent = `${conversionRate}% (${myConvertedLeads.length}/${myLeads.length})`;
 }
 
 function getFilteredOrders() {
@@ -538,9 +574,11 @@ function openOrderDetailModal(orderId) {
     ${
       order.serviceDetails
         ? `
-          <div class="mt-2 pt-2 border-t border-slate-200 text-emerald-800 font-semibold">
-            Đã cấp IP Hosting: <code class="font-mono">${escapeHtml(order.serviceDetails.hostingIp)}</code> |
-            DNS: <code class="font-mono">${escapeHtml((order.serviceDetails.nameServers || []).join(', '))}</code>
+          <div class="mt-2 pt-2 border-t border-slate-200 text-emerald-800 space-y-1 text-xs">
+            <div class="font-bold">Thông số Bàn giao Kỹ thuật (Control Panel cPanel):</div>
+            <div>IP Server: <code class="font-mono font-bold">${escapeHtml(order.serviceDetails.hostingIp)}</code> | DNS: <code class="font-mono">${escapeHtml((order.serviceDetails.nameServers || []).join(', '))}</code></div>
+            <div>URL cPanel: <code class="font-mono">${escapeHtml(order.serviceDetails.controlPanelUrl || 'https://cp.hostingadvisor.vn:2083')}</code></div>
+            <div>Username: <code class="font-mono font-bold">${escapeHtml(order.serviceDetails.cpUsername || 'ha_user')}</code> | Mật khẩu: <code class="font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">${escapeHtml(order.serviceDetails.cpPassword || 'Ha@2026')}</code></div>
           </div>
         `
         : ''
@@ -549,12 +587,24 @@ function openOrderDetailModal(orderId) {
 
   const approveBtn = document.getElementById('btn-approve-payment');
   const paymentText = document.getElementById('detail-payment-status-text');
+  const copyReminderBtn = document.getElementById('btn-copy-payment-reminder');
+  const copyHandoverBtn = document.getElementById('btn-copy-handover-info');
+  const resetCpanelPassBtn = document.getElementById('btn-reset-cpanel-pass');
+  const toolFeedbackEl = document.getElementById('detail-tool-feedback');
+  if (toolFeedbackEl) toolFeedbackEl.classList.add('hidden');
+
   if (order.status === 'completed' || order.paymentStatus === 'paid') {
     paymentText.textContent = 'Đơn hàng này đã được xác nhận thanh toán đủ và kích hoạt IP Hosting.';
     approveBtn.classList.add('hidden');
+    copyReminderBtn?.classList.add('hidden');
+    copyHandoverBtn?.classList.remove('hidden');
+    resetCpanelPassBtn?.classList.remove('hidden');
   } else {
     paymentText.textContent = `Cần thu: ${formatVND(order.totalAmount)} — Bấm nút bên cạnh để xác nhận đã nhận tiền VietQR và cấp IP Hosting.`;
     approveBtn.classList.remove('hidden');
+    copyReminderBtn?.classList.remove('hidden');
+    copyHandoverBtn?.classList.add('hidden');
+    resetCpanelPassBtn?.classList.add('hidden');
   }
 
   const statusSelect = document.getElementById('detail-status-select');
@@ -863,6 +913,214 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('order-detail-modal')?.classList.add('hidden');
   });
 
+  // Nút lọc nhanh "Chỉ Xem Đơn Của Tôi" trên thanh Hiệu Suất Cá Nhân
+  const quickFilterMineBtn = document.getElementById('btn-quick-filter-mine');
+  quickFilterMineBtn?.addEventListener('click', () => {
+    const filterAssignee = document.getElementById('filter-assignee');
+    if (!filterAssignee) return;
+    if (filterAssignee.value === 'mine') {
+      filterAssignee.value = 'all';
+      quickFilterMineBtn.textContent = 'Chỉ Xem Đơn Của Tôi';
+      quickFilterMineBtn.className = 'py-1.5 px-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold transition-colors self-start sm:self-auto';
+    } else {
+      filterAssignee.value = 'mine';
+      quickFilterMineBtn.textContent = 'Đang Lọc: Đơn Của Tôi (Bấm Để Xem Tất Cả)';
+      quickFilterMineBtn.className = 'py-1.5 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold transition-colors self-start sm:self-auto';
+    }
+    renderOrdersTable();
+  });
+
+  // Công cụ CSKH 1-Click: Copy tin nhắn nhắc thanh toán
+  document.getElementById('btn-copy-payment-reminder')?.addEventListener('click', async () => {
+    if (!activeOrder) return;
+    const bankId = window.APP_CONFIG?.BANK_ID || bankSettings.bankId || 'MB';
+    const accountNo = window.APP_CONFIG?.ACCOUNT_NO || bankSettings.accountNo || '0988123456';
+    const accountName = window.APP_CONFIG?.ACCOUNT_NAME || bankSettings.accountName || 'CONG TY TNHH HOSTING ADVISOR';
+    const reminderText = [
+      `[HOSTINGADVISOR VIỆT NAM - THÔNG BÁO THANH TOÁN ĐƠN HÀNG]`,
+      `Kính gửi anh/chị ${activeOrder.customerName},`,
+      `Đơn đăng ký dịch vụ của anh/chị đã được khởi tạo trên hệ thống:`,
+      `- Mã đơn hàng: ${activeOrder.id}`,
+      `- Gói dịch vụ: Gói ${activeOrder.planName} (${activeOrder.billingCycleMonths} tháng)${activeOrder.domainName ? ` | Tên miền: ${activeOrder.domainName}` : ''}`,
+      `- Tổng thanh toán: ${formatVND(activeOrder.totalAmount)}`,
+      `- Ngân hàng nhận: ${bankId} - Số tài khoản: ${accountNo} (${accountName})`,
+      `- Nội dung chuyển khoản: ${activeOrder.id}`,
+      `Ngay sau khi nhận được thanh toán, hệ thống sẽ kích hoạt IP Hosting và gửi thông tin quản trị cPanel cho anh/chị. Trân trọng cảm ơn!`
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(reminderText);
+      const fb = document.getElementById('detail-tool-feedback');
+      if (fb) {
+        fb.textContent = 'Đã copy tin nhắn nhắc thanh toán vào bộ nhớ tạm!';
+        fb.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Không thể copy tự động: ' + err.message);
+    }
+  });
+
+  // Công cụ Kỹ thuật 1-Click: Copy bản tin bàn giao Hosting cPanel
+  document.getElementById('btn-copy-handover-info')?.addEventListener('click', async () => {
+    if (!activeOrder || !activeOrder.serviceDetails) return;
+    const sd = activeOrder.serviceDetails;
+    const expireStr = sd.expireDate
+      ? new Date(sd.expireDate).toLocaleDateString('vi-VN')
+      : new Date(new Date(activeOrder.createdAt).getTime() + (Number(activeOrder.billingCycleMonths) || 12) * 30 * 86400000).toLocaleDateString('vi-VN');
+
+    const handoverText = [
+      `[HOSTINGADVISOR VIỆT NAM - BÀN GIAO THÔNG TIN QUẢN TRỊ HOSTING & TÊN MIỀN]`,
+      `Kính gửi anh/chị ${activeOrder.customerName},`,
+      `Dịch vụ thuộc đơn hàng ${activeOrder.id} đã được kích hoạt hoàn tất:`,
+      `- Gói Hosting: Gói ${activeOrder.planName} (${activeOrder.billingCycleMonths} tháng)`,
+      `- Tên miền: ${activeOrder.domainName || 'Chưa gắn tên miền'}`,
+      `- Địa chỉ IP Server: ${sd.hostingIp}`,
+      `- Đường dẫn Control Panel (cPanel): ${sd.controlPanelUrl || 'https://cp.hostingadvisor.vn:2083'}`,
+      `- Tài khoản cPanel (Username): ${sd.cpUsername || 'ha_user'}`,
+      `- Mật khẩu cPanel (Password): ${sd.cpPassword || 'Ha@2026'}`,
+      `- Cặp DNS Nameservers: ${(sd.nameServers || []).join(', ')}`,
+      `- Ngày hết hạn dịch vụ: ${expireStr}`,
+      `Anh/chị có thể đăng nhập tại trang chủ HostingAdvisor và mở mục "Quản Trị Hosting (cPanel)" để cài đặt WordPress 1-Click. Trân trọng cảm ơn!`
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(handoverText);
+      const fb = document.getElementById('detail-tool-feedback');
+      if (fb) {
+        fb.textContent = 'Đã copy toàn bộ thông tin bàn giao Hosting (cPanel/IP/DNS)!';
+        fb.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Không thể copy tự động: ' + err.message);
+    }
+  });
+
+  // Công cụ Kỹ thuật 1-Click: Cấp lại mật khẩu cPanel mới cho khách hàng
+  document.getElementById('btn-reset-cpanel-pass')?.addEventListener('click', async () => {
+    if (!activeOrder) return;
+    const resetBtn = document.getElementById('btn-reset-cpanel-pass');
+    if (resetBtn) {
+      resetBtn.disabled = true;
+      resetBtn.textContent = 'Đang cấp mật khẩu mới...';
+    }
+    try {
+      await patchOrder(activeOrder.id, { action: 'reset_cpanel_password' });
+      const fb = document.getElementById('detail-tool-feedback');
+      if (fb) {
+        fb.textContent = 'Đã cấp lại mật khẩu cPanel mới và ghi nhận vào Timeline!';
+        fb.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      if (resetBtn) {
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Cấp Lại Mật Khẩu cPanel Mới';
+      }
+    }
+  });
+
+  // Nghiệp vụ Tạo Đơn Hàng Hộ Khách Qua Điện Thoại (Quick Order Modal)
+  const quickOrderModal = document.getElementById('quick-order-modal');
+  const quickOrderForm = document.getElementById('quick-order-form');
+  const qoErrorMsg = document.getElementById('qo-error-msg');
+
+  function closeQuickOrderModal() {
+    quickOrderModal?.classList.add('hidden');
+    qoErrorMsg?.classList.add('hidden');
+  }
+
+  document.getElementById('btn-open-quick-order')?.addEventListener('click', () => {
+    quickOrderForm?.reset();
+    qoErrorMsg?.classList.add('hidden');
+    quickOrderModal?.classList.remove('hidden');
+  });
+
+  document.getElementById('btn-close-quick-order-modal')?.addEventListener('click', closeQuickOrderModal);
+  document.getElementById('btn-cancel-quick-order')?.addEventListener('click', closeQuickOrderModal);
+  quickOrderModal?.addEventListener('click', (event) => {
+    if (event.target === quickOrderModal) closeQuickOrderModal();
+  });
+
+  quickOrderForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    qoErrorMsg?.classList.add('hidden');
+
+    const customerName = (document.getElementById('qo-customer-name')?.value || '').trim();
+    const phone = (document.getElementById('qo-phone')?.value || '').trim();
+    const email = (document.getElementById('qo-email')?.value || '').trim();
+    const planId = document.getElementById('qo-plan')?.value || 'pro';
+    const billingCycleMonths = Number(document.getElementById('qo-cycle')?.value) || 12;
+    const domainName = (document.getElementById('qo-domain')?.value || '').trim().toLowerCase();
+    const couponCode = (document.getElementById('qo-coupon')?.value || '').trim().toUpperCase();
+    const notes = (document.getElementById('qo-notes')?.value || '').trim();
+
+    if (!customerName || !phone) {
+      if (qoErrorMsg) {
+        qoErrorMsg.textContent = 'Vui lòng nhập đầy đủ Họ tên và Số điện thoại của khách hàng.';
+        qoErrorMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (!/^(0|\+84)\d{9}$/.test(phone.replace(/\s+/g, ''))) {
+      if (qoErrorMsg) {
+        qoErrorMsg.textContent = 'Số điện thoại khách hàng không hợp lệ (cần đủ 10 chữ số, ví dụ 0912345678).';
+        qoErrorMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-quick-order');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang khởi tạo đơn...';
+    }
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({
+          customerName,
+          phone: phone.replace(/\s+/g, ''),
+          email,
+          planId,
+          billingCycleMonths,
+          domainName,
+          couponCode,
+          notes: notes || 'Đơn tạo hộ khách qua điện thoại (POS Telesale)',
+          createdByStaff: true
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok || !data.order) {
+        if (qoErrorMsg) {
+          qoErrorMsg.textContent = data.error || 'Không thể tạo đơn hàng.';
+          qoErrorMsg.classList.remove('hidden');
+        }
+        return;
+      }
+
+      closeQuickOrderModal();
+      await loadStaffAndOrders();
+      openOrderDetailModal(data.order.id);
+    } catch (err) {
+      if (qoErrorMsg) {
+        qoErrorMsg.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
+        qoErrorMsg.classList.remove('hidden');
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Tạo Đơn & Lấy Mã VietQR';
+      }
+    }
+  });
+
   // Duyệt thanh toán VietQR & kích hoạt dịch vụ (status = completed)
   approvePaymentBtn?.addEventListener('click', async () => {
     if (!activeOrder) return;
@@ -1136,7 +1394,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchAdminTab(btn.dataset.tab));
   });
 
-  let allLeads = [];
   let currentLeadId = null;
 
   function getLeadStatusLabel(status) {
@@ -1214,6 +1471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (kpiNew) kpiNew.textContent = String(newCount);
     if (kpiContacted) kpiContacted.textContent = String(contactedCount);
     if (kpiConverted) kpiConverted.textContent = String(convertedCount);
+    updatePersonalKPIs();
   }
 
   function renderLeadsTable() {
