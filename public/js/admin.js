@@ -334,6 +334,7 @@ function populateStaffDropdowns() {
     const currentVal = filterAssignee.value || 'all';
     filterAssignee.innerHTML = `
       <option value="all">Tất cả người phụ trách</option>
+      <option value="mine">Đơn của tôi phụ trách</option>
       <option value="unassigned">Chưa phân công</option>
       ${staffUsers.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.fullName)} (${escapeHtml(s.role)})</option>`).join('')}
     `;
@@ -380,8 +381,9 @@ function getFilteredOrders() {
 
   return allOrders.filter((o) => {
     if (statusVal !== 'all' && o.status !== statusVal) return false;
+    if (assigneeVal === 'mine' && (!adminUser || o.assignedTo !== adminUser.id)) return false;
     if (assigneeVal === 'unassigned' && o.assignedTo) return false;
-    if (assigneeVal !== 'all' && assigneeVal !== 'unassigned' && o.assignedTo !== assigneeVal) return false;
+    if (assigneeVal !== 'all' && assigneeVal !== 'mine' && assigneeVal !== 'unassigned' && o.assignedTo !== assigneeVal) return false;
 
     if (searchVal) {
       const haystack = [
@@ -429,6 +431,28 @@ function renderOrdersTable() {
         ? `${o.couponApplied} (-${formatVND(o.discountAmount)})`
         : 'Không áp mã';
 
+      const isMine = adminUser && o.assignedTo === adminUser.id;
+      const isUnassigned = !o.assignedTo;
+      let orderAssigneeHtml = '';
+      if (isMine) {
+        orderAssigneeHtml = `<span class="inline-block px-2.5 py-0.5 text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 rounded-full">Bạn phụ trách</span>`;
+      } else if (isUnassigned) {
+        orderAssigneeHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-400">Chưa có</span>
+            <button
+              type="button"
+              data-claim-order-id="${escapeHtml(o.id)}"
+              class="btn-quick-claim-order text-xs font-bold px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md transition-colors"
+            >
+              Nhận đơn
+            </button>
+          </div>
+        `;
+      } else {
+        orderAssigneeHtml = `<span class="text-xs text-slate-700 font-medium">${escapeHtml(o.assignedToName || 'Đã phân công')}</span>`;
+      }
+
       return `
         <tr class="hover:bg-slate-50/90 transition-colors">
           <td class="p-3.5 align-top">
@@ -454,7 +478,7 @@ function renderOrdersTable() {
             ${getStatusBadgeHtml(o)}
           </td>
           <td class="p-3.5 align-top text-xs text-slate-700 whitespace-nowrap">
-            ${escapeHtml(o.assignedToName || 'Chưa phân công')}
+            ${orderAssigneeHtml}
           </td>
           <td class="p-3.5 align-top text-right whitespace-nowrap space-x-1.5">
             <button
@@ -536,12 +560,42 @@ function openOrderDetailModal(orderId) {
   const statusSelect = document.getElementById('detail-status-select');
   const assigneeSelect = document.getElementById('detail-assignee-select');
   const notesInput = document.getElementById('detail-notes-input');
+  const orderAdminAssigneeBox = document.getElementById('order-assignee-admin-box');
+  const orderStaffAssigneeBox = document.getElementById('order-assignee-staff-box');
+  const orderStaffAssigneeName = document.getElementById('order-staff-assignee-name');
+  const staffClaimOrderBtn = document.getElementById('btn-staff-claim-order');
 
   statusSelect.value = order.status || 'pending_payment';
   assigneeSelect.value = order.assignedTo || '';
   assigneeSelect.disabled = adminUser?.role !== 'admin';
   notesInput.value = order.notes || '';
   document.getElementById('detail-save-msg')?.classList.add('hidden');
+
+  if (adminUser?.role === 'admin') {
+    orderAdminAssigneeBox?.classList.remove('hidden');
+    orderStaffAssigneeBox?.classList.add('hidden');
+  } else {
+    orderAdminAssigneeBox?.classList.add('hidden');
+    orderStaffAssigneeBox?.classList.remove('hidden');
+    if (orderStaffAssigneeName) {
+      orderStaffAssigneeName.textContent = order.assignedToName || 'Chưa phân công';
+    }
+    if (staffClaimOrderBtn) {
+      if (adminUser && order.assignedTo === adminUser.id) {
+        staffClaimOrderBtn.textContent = 'Bạn đang phụ trách';
+        staffClaimOrderBtn.disabled = true;
+        staffClaimOrderBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 shrink-0';
+      } else if (order.assignedTo) {
+        staffClaimOrderBtn.textContent = 'Đã có người phụ trách';
+        staffClaimOrderBtn.disabled = true;
+        staffClaimOrderBtn.className = 'text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed shrink-0';
+      } else {
+        staffClaimOrderBtn.textContent = 'Nhận Xử Lý Đơn Này';
+        staffClaimOrderBtn.disabled = false;
+        staffClaimOrderBtn.className = 'bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0';
+      }
+    }
+  }
 
   // Render Timeline
   const timelineList = document.getElementById('detail-timeline-list');
@@ -736,6 +790,32 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filter-assignee')?.addEventListener('change', renderOrdersTable);
 
   tbody?.addEventListener('click', async (event) => {
+    const claimOrderBtn = event.target.closest('.btn-quick-claim-order');
+    if (claimOrderBtn) {
+      const claimId = claimOrderBtn.getAttribute('data-claim-order-id');
+      if (!claimId) return;
+      claimOrderBtn.disabled = true;
+      claimOrderBtn.textContent = 'Đang nhận...';
+      try {
+        const res = await fetch(`/api/orders/${claimId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ action: 'claim' })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          alert(data.error || 'Không thể tiếp nhận đơn hàng này.');
+        }
+        await loadStaffAndOrders();
+      } catch (err) {
+        alert('Lỗi kết nối khi nhận đơn: ' + err.message);
+      }
+      return;
+    }
+
     const detailBtn = event.target.closest('.btn-open-detail');
     if (detailBtn) {
       openOrderDetailModal(detailBtn.getAttribute('data-detail-order-id'));
@@ -757,6 +837,25 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error('Lỗi xóa đơn:', err);
       }
+    }
+  });
+
+  document.getElementById('btn-staff-claim-order')?.addEventListener('click', async () => {
+    if (!activeOrder) return;
+    const claimBtn = document.getElementById('btn-staff-claim-order');
+    if (claimBtn) {
+      claimBtn.disabled = true;
+      claimBtn.textContent = 'Đang nhận đơn...';
+    }
+    try {
+      await patchOrder(activeOrder.id, { action: 'claim' });
+      const msg = document.getElementById('detail-save-msg');
+      if (msg) {
+        msg.textContent = 'Bạn đã tiếp nhận phụ trách xử lý đơn hàng này!';
+        msg.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert(err.message);
     }
   });
 
@@ -1121,7 +1220,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('leads-tbody');
     if (!tbody) return;
     const filterStatus = document.getElementById('lead-filter-status')?.value || 'all';
-    const filtered = filterStatus === 'all' ? allLeads : allLeads.filter(l => l.status === filterStatus);
+    const filterAssignee = document.getElementById('lead-filter-assignee')?.value || 'all';
+    const filtered = allLeads.filter(l => {
+      if (filterStatus !== 'all' && l.status !== filterStatus) return false;
+      if (filterAssignee === 'mine' && (!adminUser || l.assigned_to !== adminUser.id)) return false;
+      if (filterAssignee === 'unassigned' && l.assigned_to) return false;
+      return true;
+    });
 
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Chưa có yêu cầu tư vấn nào.</td></tr>';
@@ -1513,6 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-delete-lead')?.addEventListener('click', deleteLead);
   document.getElementById('btn-refresh-leads')?.addEventListener('click', loadLeads);
   document.getElementById('lead-filter-status')?.addEventListener('change', renderLeadsTable);
+  document.getElementById('lead-filter-assignee')?.addEventListener('change', renderLeadsTable);
   document.getElementById('btn-lead-ai-script')?.addEventListener('click', generateLeadSalesScript);
   document.getElementById('btn-lead-convert-order')?.addEventListener('click', async () => {
     if (currentLeadId) {

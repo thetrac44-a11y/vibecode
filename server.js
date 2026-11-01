@@ -1227,7 +1227,7 @@ app.get('/api/orders', authenticateToken, requireRole(['admin', 'staff']), async
 app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const orderId = req.params.id;
-    const { status, assignedTo, notes } = req.body || {};
+    const { status, assignedTo, notes, action } = req.body || {};
 
     const order = await db.getOrderById(orderId);
     if (!order) {
@@ -1235,22 +1235,49 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
     }
 
     const nowIso = new Date().toISOString();
+    const actorName = req.user.fullName || req.user.username;
     order.timeline = Array.isArray(order.timeline) ? order.timeline : [];
 
-    if (assignedTo !== undefined && assignedTo !== order.assignedTo) {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({
+    // 1. Nghiệp vụ 1-Click Nhận đơn (Self-Claim) cho Staff/Admin
+    if (action === 'claim') {
+      if (order.assignedTo && order.assignedTo !== req.user.id && req.user.role !== 'admin') {
+        return res.status(400).json({
           ok: false,
-          error: 'Chỉ Quản trị viên (Admin) mới có quyền phân công nhân sự phụ trách đơn hàng.'
+          error: 'Đơn hàng này đã có nhân sự khác tiếp nhận phụ trách.'
         });
       }
-      if (!assignedTo) {
+      if (order.assignedTo !== req.user.id) {
+        order.assignedTo = req.user.id;
+        order.assignedToName = actorName;
+        order.timeline.push({
+          time: nowIso,
+          action: `Tiếp nhận phụ trách xử lý đơn hàng (${actorName})`,
+          by: actorName
+        });
+      }
+    } else if (assignedTo !== undefined && assignedTo !== order.assignedTo) {
+      if (req.user.role !== 'admin') {
+        if (!order.assignedTo && assignedTo === req.user.id) {
+          order.assignedTo = req.user.id;
+          order.assignedToName = actorName;
+          order.timeline.push({
+            time: nowIso,
+            action: `Tiếp nhận phụ trách xử lý đơn hàng (${actorName})`,
+            by: actorName
+          });
+        } else {
+          return res.status(403).json({
+            ok: false,
+            error: 'Nhân viên chỉ được tự nhận đơn chưa phân công. Chỉ Admin mới có quyền điều chuyển đơn hàng.'
+          });
+        }
+      } else if (!assignedTo) {
         order.assignedTo = null;
         order.assignedToName = 'Chưa phân công';
         order.timeline.push({
           time: nowIso,
           action: 'Bỏ phân công nhân sự phụ trách',
-          by: req.user.fullName
+          by: actorName
         });
       } else {
         const staffUser = await db.getUserById(assignedTo);
@@ -1262,7 +1289,7 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
         order.timeline.push({
           time: nowIso,
           action: `Phân công đơn hàng cho: ${staffUser.fullName}`,
-          by: req.user.fullName
+          by: actorName
         });
       }
     }
@@ -1270,6 +1297,17 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
     if (status && status !== order.status) {
       const oldStatus = order.status;
       order.status = status;
+
+      // Tự động gắn tên nhân sự phụ trách nếu đơn chưa phân công mà được nhân sự duyệt/xử lý
+      if (!order.assignedTo) {
+        order.assignedTo = req.user.id;
+        order.assignedToName = actorName;
+        order.timeline.push({
+          time: nowIso,
+          action: `Tự động ghi nhận người phụ trách xử lý đơn: ${actorName}`,
+          by: actorName
+        });
+      }
 
       if (status === 'completed') {
         order.paymentStatus = 'paid';
@@ -1294,7 +1332,7 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
         order.timeline.push({
           time: nowIso,
           action: `Đã xác nhận nhận đủ tiền VietQR & Kích hoạt dịch vụ (IP: ${order.serviceDetails.hostingIp})`,
-          by: req.user.fullName
+          by: actorName
         });
       } else {
         if (status === 'pending_payment' || status === 'cancelled') {
@@ -1303,17 +1341,21 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
         order.timeline.push({
           time: nowIso,
           action: `Cập nhật trạng thái đơn: ${oldStatus} -> ${status}`,
-          by: req.user.fullName
+          by: actorName
         });
       }
     }
 
     if (notes !== undefined && String(notes).trim() !== order.notes) {
       order.notes = String(notes).trim();
+      if (!order.assignedTo && req.user.role === 'staff') {
+        order.assignedTo = req.user.id;
+        order.assignedToName = actorName;
+      }
       order.timeline.push({
         time: nowIso,
         action: `Cập nhật ghi chú xử lý: "${order.notes || 'Đã xóa ghi chú'}"`,
-        by: req.user.fullName
+        by: actorName
       });
     }
 
