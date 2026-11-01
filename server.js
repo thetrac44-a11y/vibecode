@@ -1155,10 +1155,10 @@ app.post('/api/orders/:id/cancel', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
     }
 
-    if (order.status !== 'pending_payment') {
+    if (order.status === 'completed' || order.paymentStatus === 'paid' || order.status === 'cancelled') {
       return res.status(400).json({
         ok: false,
-        error: 'Chỉ có thể hủy đơn hàng khi đơn đang ở trạng thái Chờ thanh toán.'
+        error: 'Chỉ có thể hủy đơn hàng khi đơn chưa được kích hoạt.'
       });
     }
 

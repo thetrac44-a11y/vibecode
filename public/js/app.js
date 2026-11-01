@@ -1346,6 +1346,7 @@ function openCheckoutModal(planId, options = {}) {
   document.getElementById('btn-create-order')?.classList.remove('hidden');
   document.getElementById('btn-confirm-paid')?.classList.add('hidden');
   document.getElementById('btn-checkout-view-invoice')?.classList.add('hidden');
+  document.getElementById('btn-checkout-cancel-order')?.classList.add('hidden');
 
   document.querySelectorAll('.cycle-btn').forEach((btn) => {
     btn.classList.toggle('is-active', Number(btn.getAttribute('data-cycle')) === resolvedCycle);
@@ -1369,6 +1370,7 @@ function initCheckoutModal() {
   const createOrderBtn = document.getElementById('btn-create-order');
   const confirmPaidBtn = document.getElementById('btn-confirm-paid');
   const viewInvoiceBtn = document.getElementById('btn-checkout-view-invoice');
+  const cancelCheckoutOrderBtn = document.getElementById('btn-checkout-cancel-order');
   const statusMsg = document.getElementById('checkout-status-msg');
 
   closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
@@ -1607,6 +1609,7 @@ function initCheckoutModal() {
       createOrderBtn.classList.add('hidden');
       confirmPaidBtn.classList.remove('hidden');
       viewInvoiceBtn.classList.remove('hidden');
+      cancelCheckoutOrderBtn?.classList.remove('hidden');
     } catch (err) {
       createOrderBtn.disabled = false;
       createOrderBtn.textContent = '1. Xác Nhận Đặt Đơn & Lấy Mã Đơn Hàng';
@@ -1649,6 +1652,37 @@ function initCheckoutModal() {
   viewInvoiceBtn?.addEventListener('click', () => {
     if (checkoutState.createdOrder) {
       openInvoiceModal(checkoutState.createdOrder);
+    }
+  });
+
+  cancelCheckoutOrderBtn?.addEventListener('click', async () => {
+    if (!checkoutState.createdOrder) return;
+    cancelCheckoutOrderBtn.disabled = true;
+    cancelCheckoutOrderBtn.textContent = 'Đang hủy đơn hàng...';
+    try {
+      const headers = {};
+      if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
+      const res = await fetch(`/api/orders/${encodeURIComponent(checkoutState.createdOrder.id)}/cancel`, {
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        const cancelledId = checkoutState.createdOrder.id;
+        checkoutState.createdOrder = null;
+        confirmPaidBtn.classList.add('hidden');
+        viewInvoiceBtn.classList.add('hidden');
+        cancelCheckoutOrderBtn.classList.add('hidden');
+        createOrderBtn.classList.remove('hidden');
+        statusMsg.textContent = `Đã hủy đơn hàng ${cancelledId} thành công. Bạn có thể chọn lại gói hoặc tên miền khác để đặt lại đơn mới.`;
+        statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+        statusMsg.classList.remove('hidden');
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      cancelCheckoutOrderBtn.disabled = false;
+      cancelCheckoutOrderBtn.textContent = 'Hủy Đơn Hàng Này (Nếu đặt nhầm)';
     }
   });
 }
@@ -1911,15 +1945,19 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
 
             <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
               ${
-                o.status === 'pending_payment'
+                o.status === 'pending_payment' || o.status === 'paid_processing'
                   ? `<button
                       type="button"
                       data-cancel-order-id="${escapeHtml(o.id)}"
                       class="btn-myorder-cancel py-2 px-3.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-all"
                     >
                       Hủy Đơn
-                    </button>
-                    <button
+                    </button>`
+                  : ''
+              }
+              ${
+                o.status === 'pending_payment'
+                  ? `<button
                       type="button"
                       data-qr-order-id="${escapeHtml(o.id)}"
                       class="btn-myorder-pay-qr py-2 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all"
@@ -2279,6 +2317,7 @@ function initOrdersAndInvoiceModals() {
         document.getElementById('btn-create-order')?.classList.add('hidden');
         document.getElementById('btn-confirm-paid')?.classList.remove('hidden');
         document.getElementById('btn-checkout-view-invoice')?.classList.remove('hidden');
+        document.getElementById('btn-checkout-cancel-order')?.classList.remove('hidden');
       }
       return;
     }
