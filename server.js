@@ -13,6 +13,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const dns = require('dns').promises;
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -523,6 +524,71 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Khách hàng hoặc nhân sự cập nhật hồ sơ cá nhân & đổi mật khẩu
+app.patch('/api/auth/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy tài khoản người dùng.' });
+    }
+
+    const { fullName, phone, email, currentPassword, newPassword } = req.body || {};
+    const cleanFullName = String(fullName ?? user.fullName ?? '').trim();
+    const cleanPhone = String(phone ?? user.phone ?? '').trim();
+    const cleanEmail = String(email ?? user.email ?? '').trim();
+
+    if (!cleanFullName || cleanFullName.length < 2) {
+      return res.status(400).json({ ok: false, error: 'Họ và tên phải có ít nhất 2 ký tự.' });
+    }
+    if (!/^(0|\+84)\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng 0 hoặc +84).'
+      });
+    }
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ ok: false, error: 'Địa chỉ Email không đúng định dạng.' });
+    }
+
+    let updatedPasswordHash = user.password;
+    if (newPassword !== undefined && String(newPassword).length > 0) {
+      if (!currentPassword || !verifyPassword(String(currentPassword), user.password)) {
+        return res.status(400).json({ ok: false, error: 'Mật khẩu hiện tại không chính xác.' });
+      }
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ ok: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+      }
+      updatedPasswordHash = hashPassword(String(newPassword));
+    }
+
+    const updatedUser = await db.updateUser({
+      ...user,
+      fullName: cleanFullName,
+      phone: cleanPhone,
+      email: cleanEmail,
+      password: updatedPasswordHash
+    });
+
+    const payload = {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      fullName: updatedUser.fullName,
+      phone: updatedUser.phone,
+      email: updatedUser.email,
+      role: updatedUser.role
+    };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    return res.json({
+      ok: true,
+      token,
+      user: sanitizeUser(updatedUser)
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi cập nhật hồ sơ: ' + err.message });
+  }
+});
+
 app.get('/api/users/staff', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
   try {
     const allUsers = await db.getAllUsers();
@@ -724,6 +790,158 @@ function findDomainPrice(domainPricingList, domainName) {
   return 280000;
 }
 
+async function checkSingleDomainAvailability(fullDomain, allOrders, allowUserId = null) {
+  const cleanDomain = String(fullDomain || '').trim().toLowerCase();
+  if (!cleanDomain) {
+    return { domain: '', available: false, reason: 'Tên miền không hợp lệ' };
+  }
+
+  const activeOrders = (allOrders || []).filter((o) => o.status !== 'cancelled');
+  const foundOrder = activeOrders.find(
+    (o) => String(o.domainName || '').trim().toLowerCase() === cleanDomain
+  );
+
+  if (foundOrder) {
+    if (allowUserId && foundOrder.userId && foundOrder.userId === allowUserId) {
+      return {
+        domain: cleanDomain,
+        available: true,
+        isOwnedByCurrentUser: true,
+        reason: 'Tên miền thuộc sở hữu của bạn (Hợp lệ để gia hạn / nâng cấp gói)'
+      };
+    }
+    return {
+      domain: cleanDomain,
+      available: false,
+      source: 'database',
+      reason: 'Đã được đăng ký trên hệ thống HostingAdvisor'
+    };
+  }
+
+  try {
+    const dnsRes = await Promise.race([
+      dns.lookup(cleanDomain),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DNS_TIMEOUT')), 1500))
+    ]);
+    if (dnsRes && dnsRes.address) {
+      return {
+        domain: cleanDomain,
+        available: false,
+        source: 'dns',
+        reason: `Đã có chủ sở hữu trên Internet (IP: ${dnsRes.address})`
+      };
+    }
+  } catch (err) {
+    // ENOTFOUND hoặc timeout nghĩa là tên miền chưa trỏ DNS trên Internet -> Còn trống
+  }
+
+  return {
+    domain: cleanDomain,
+    available: true,
+    source: 'available',
+    reason: 'Tên miền còn trống — Có thể đăng ký ngay'
+  };
+}
+
+/**
+ * GET /api/domains/check?name=yenboutique&ext=.vn
+ * Kiểm tra tên miền trực tuyến kết hợp Database Supabase & DNS thực tế trên Internet
+ */
+app.get('/api/domains/check', async (req, res) => {
+  try {
+    const rawQuery = String(req.query.name || req.query.domain || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split('/')[0];
+
+    if (!rawQuery) {
+      return res.status(400).json({ ok: false, error: 'Vui lòng nhập tên miền cần kiểm tra.' });
+    }
+
+    const tokenUser = extractUserFromHeader(req);
+    const catalog = await db.getCatalogData();
+    const allOrders = await db.getAllOrders();
+
+    const knownExts = ['.com.vn', '.vn', '.com', '.shop', '.net', '.org'];
+    let baseName = rawQuery;
+    let detectedExt = String(req.query.ext || '').trim().toLowerCase();
+
+    for (const ext of knownExts) {
+      if (rawQuery.endsWith(ext) && rawQuery.length > ext.length) {
+        baseName = rawQuery.slice(0, -ext.length);
+        if (!detectedExt) detectedExt = ext;
+        break;
+      }
+    }
+
+    baseName = baseName.replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '');
+    if (!baseName || baseName.length < 2) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Tên miền phải có ít nhất 2 ký tự chữ hoặc số hợp lệ.'
+      });
+    }
+
+    const pricingList = Array.isArray(catalog.domain_pricing) && catalog.domain_pricing.length
+      ? catalog.domain_pricing
+      : [
+          { extension: '.com', price: 280000, description: 'Tên miền quốc tế phổ biến nhất' },
+          { extension: '.vn', price: 550000, description: 'Tên miền quốc gia Việt Nam uy tín' },
+          { extension: '.com.vn', price: 450000, description: 'Doanh nghiệp thương mại Việt Nam' },
+          { extension: '.shop', price: 190000, description: 'Cửa hàng bán lẻ trực tuyến' }
+        ];
+
+    const results = await Promise.all(
+      pricingList.map(async (item) => {
+        const ext = String(item.extension || '.vn').toLowerCase();
+        const fullDomain = `${baseName}${ext}`;
+        const check = await checkSingleDomainAvailability(fullDomain, allOrders, tokenUser?.id || null);
+        return {
+          domain: fullDomain,
+          baseName,
+          extension: ext,
+          price: Number(item.price) || 280000,
+          description: item.description || '',
+          available: check.available,
+          isOwnedByCurrentUser: Boolean(check.isOwnedByCurrentUser),
+          reason: check.reason
+        };
+      })
+    );
+
+    // Nếu đuôi khách tìm kiếm đã bị mua, tự động gợi ý các biến thể tên miền còn trống
+    const suggestions = [];
+    if (results.some((r) => !r.available)) {
+      const altSuffixes = ['-shop', '-vn', '-official'];
+      for (const suf of altSuffixes) {
+        const altBase = `${baseName}${suf}`;
+        const altDomain = `${altBase}.vn`;
+        const altCheck = await checkSingleDomainAvailability(altDomain, allOrders, tokenUser?.id || null);
+        if (altCheck.available) {
+          suggestions.push({
+            domain: altDomain,
+            baseName: altBase,
+            extension: '.vn',
+            price: 550000
+          });
+        }
+      }
+    }
+
+    return res.json({
+      ok: true,
+      baseName,
+      detectedExt: detectedExt || '.vn',
+      results,
+      suggestions
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi kiểm tra tên miền: ' + err.message });
+  }
+});
+
 /**
  * POST /api/orders
  * Hỗ trợ cả khách hàng đã đăng nhập VÀ khách mua trực tiếp (điền Họ tên, SĐT, Email ngay tại Checkout)
@@ -780,6 +998,17 @@ app.post('/api/orders', async (req, res) => {
     )
       .trim()
       .toLowerCase();
+
+    if (resolvedDomain) {
+      const allOrders = await db.getAllOrders();
+      const domainCheck = await checkSingleDomainAvailability(resolvedDomain, allOrders, tokenUser?.id || null);
+      if (!domainCheck.available) {
+        return res.status(400).json({
+          ok: false,
+          error: `Tên miền "${resolvedDomain}" không thể đăng ký mới (${domainCheck.reason}). Vui lòng chọn tên miền hoặc đuôi mở rộng khác.`
+        });
+      }
+    }
 
     const domainAmount =
       resolvedDomain && !plan.freeDomain ? findDomainPrice(catalog.domain_pricing, resolvedDomain) : 0;

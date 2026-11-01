@@ -550,6 +550,31 @@ async function createUser(userObj) {
   return mapUserFromPg(data);
 }
 
+async function updateUser(userObj) {
+  await ensureConnected();
+  if (!isSupabaseActive) {
+    const db = readLocalDb();
+    const idx = db.users.findIndex((u) => u.id === userObj.id);
+    if (idx === -1) return null;
+    db.users[idx] = { ...db.users[idx], ...userObj };
+    writeLocalDb(db);
+    return db.users[idx];
+  }
+  const { data, error } = await supabase
+    .from('users')
+    .update({
+      full_name: userObj.fullName,
+      phone: userObj.phone || '',
+      email: userObj.email || '',
+      password: userObj.password
+    })
+    .eq('id', userObj.id)
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  return mapUserFromPg(data);
+}
+
 async function deleteUserById(id) {
   await ensureConnected();
   if (!isSupabaseActive) {
@@ -973,6 +998,7 @@ module.exports = {
   getUserByUsername,
   getUserById,
   createUser,
+  updateUser,
   deleteUserById,
   getCoupons,
   upsertCoupon,

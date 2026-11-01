@@ -89,10 +89,12 @@
         </div>
 
         <div id="nav-user-box" class="hidden items-center gap-1.5 sm:gap-2">
-          <span
+          <button
+            type="button"
             id="nav-user-greeting"
-            class="hidden sm:inline-block max-w-[145px] xl:max-w-[190px] truncate text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2.5 py-1.5 rounded-lg"
-          ></span>
+            title="Bấm để mở Hồ sơ cá nhân &amp; Đổi mật khẩu"
+            class="hidden sm:inline-block max-w-[145px] xl:max-w-[190px] truncate text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+          ></button>
           <a
             id="nav-admin-link"
             href="admin.html"
@@ -387,17 +389,38 @@
         <!-- Lưới 6 gói Hosting -->
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
 
-        <!-- Bảng giá 4 đuôi Tên miền phổ biến -->
-        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5 sm:p-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <!-- Bảng giá 4 đuôi Tên miền phổ biến & Công cụ Kiểm tra Tên miền trực tuyến -->
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 class="text-base sm:text-lg font-bold text-slate-900">Bảng Giá Đăng Ký Tên Miền Thương Hiệu</h3>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900">Bảng Giá &amp; Kiểm Tra Tên Miền Thương Hiệu Trực Tuyến</h3>
               <p class="text-xs text-slate-500">Miễn phí 100% năm đầu tiên khi mua kèm các gói Basic, Business hoặc Shop Pro</p>
             </div>
             <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              Kích hoạt DNS tự động
+              Kiểm tra DNS &amp; CSDL thời gian thực
             </span>
           </div>
+
+          <!-- Thanh kiểm tra tên miền trực tuyến -->
+          <form id="domain-checker-form" novalidate class="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <input
+                type="text"
+                id="domain-check-input"
+                placeholder="Nhập tên thương hiệu hoặc tên miền cần kiểm tra (ví dụ: yenboutique, google.com)..."
+                class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                id="btn-domain-check"
+                class="py-2.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition-all whitespace-nowrap"
+              >
+                Kiểm Tra Tên Miền
+              </button>
+            </div>
+            <div id="domain-check-results" class="hidden mt-3.5 pt-3.5 border-t border-slate-100"></div>
+          </form>
+
           <div id="domain-pricing-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
         </div>
       </div>
@@ -791,8 +814,8 @@
                 Tặng miễn phí năm đầu
               </span>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div class="sm:col-span-2">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <div class="sm:col-span-6">
                 <input
                   type="text"
                   id="checkout-domain-name"
@@ -800,10 +823,10 @@
                   class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
                 />
               </div>
-              <div>
+              <div class="sm:col-span-3">
                 <select
                   id="checkout-domain-ext"
-                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
                 >
                   <option value=".vn">.vn (550.000đ)</option>
                   <option value=".com">.com (280.000đ)</option>
@@ -811,7 +834,17 @@
                   <option value=".shop">.shop (190.000đ)</option>
                 </select>
               </div>
+              <div class="sm:col-span-3">
+                <button
+                  type="button"
+                  id="btn-checkout-check-domain"
+                  class="w-full h-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all"
+                >
+                  Kiểm Tra
+                </button>
+              </div>
             </div>
+            <div id="checkout-domain-check-msg" class="hidden mt-2 rounded-lg p-2 text-xs font-semibold"></div>
             <p class="text-xs text-slate-500 mt-1.5">Để trống ô tên miền nếu bạn đã có sẵn tên miền riêng.</p>
           </div>
 
@@ -1077,6 +1110,121 @@
       </div>
 
       <div id="cpanel-content-area"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 7: HỒ SƠ CÁ NHÂN & ĐỔI MẬT KHẨU (USER PROFILE)
+       ========================================== -->
+  <div
+    id="profile-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 p-3 sm:p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-5 sm:p-6 max-h-[88vh] overflow-y-auto my-auto overscroll-contain">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Quản lý tài khoản</span>
+          <h3 class="text-lg font-bold text-slate-900 mt-0.5">Hồ Sơ Cá Nhân &amp; Bảo Mật</h3>
+        </div>
+        <button
+          type="button"
+          id="btn-close-profile"
+          class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1 rounded-lg bg-slate-100"
+        >
+          Đóng
+        </button>
+      </div>
+
+      <form id="profile-form" novalidate class="space-y-4">
+        <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <div>
+            <span class="text-slate-500 block">Tên đăng nhập:</span>
+            <strong id="profile-username-display" class="font-mono text-slate-900 text-sm"></strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Phân quyền hệ thống:</span>
+            <strong id="profile-role-display" class="uppercase text-brand-700 text-sm"></strong>
+          </div>
+        </div>
+
+        <div>
+          <label for="profile-fullname" class="block text-xs font-semibold text-slate-700 mb-1">Họ và tên <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="profile-fullname"
+            placeholder="Nhập họ và tên"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="profile-phone" class="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+            <input
+              type="tel"
+              id="profile-phone"
+              placeholder="0912345678"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="profile-email" class="block text-xs font-semibold text-slate-700 mb-1">Email nhận hóa đơn</label>
+            <input
+              type="email"
+              id="profile-email"
+              placeholder="email@domain.vn"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-600">
+            Đổi mật khẩu mới (Để trống nếu giữ nguyên mật khẩu cũ)
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="profile-current-password" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
+              <input
+                type="password"
+                id="profile-current-password"
+                placeholder="Nhập mật khẩu cũ"
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label for="profile-new-password" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới (&ge; 6 ký tự)</label>
+              <input
+                type="password"
+                id="profile-new-password"
+                placeholder="Nhập mật khẩu mới"
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div id="profile-msg" class="hidden rounded-xl p-3 text-xs font-semibold"></div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            id="btn-cancel-profile"
+            class="py-2 px-4 rounded-xl border border-slate-300 text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            id="btn-save-profile"
+            class="py-2 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition-all"
+          >
+            Lưu Thay Đổi Hồ Sơ
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

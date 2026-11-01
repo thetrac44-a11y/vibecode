@@ -1278,16 +1278,40 @@ function refreshCheckoutSummary() {
   }
 }
 
-function openCheckoutModal(planId) {
+function splitDomainAndExt(fullDomain) {
+  const clean = String(fullDomain || '').trim().toLowerCase();
+  if (!clean) return { baseName: '', ext: '.vn' };
+  const knownExts = ['.com.vn', '.vn', '.com', '.shop'];
+  for (const ext of knownExts) {
+    if (clean.endsWith(ext) && clean.length > ext.length) {
+      return { baseName: clean.slice(0, -ext.length), ext };
+    }
+  }
+  const dotIdx = clean.indexOf('.');
+  if (dotIdx > 0) {
+    return { baseName: clean.slice(0, dotIdx), ext: '.vn' };
+  }
+  return { baseName: clean, ext: '.vn' };
+}
+
+function openCheckoutModal(planId, options = {}) {
   loadDynamicCatalog().then(() => refreshCheckoutSummary());
   const desiredFromForm = document.getElementById('desiredDomain')?.value.trim() || '';
   const extFromForm = document.getElementById('preferredExtension')?.value || '.vn';
 
+  const resolvedDomainBase =
+    options.domainBase !== undefined ? String(options.domainBase).trim() : desiredFromForm;
+  const resolvedDomainExt =
+    options.domainExt !== undefined ? String(options.domainExt).trim() : extFromForm;
+  const resolvedCycle = [12, 24, 36].includes(Number(options.cycleMonths))
+    ? Number(options.cycleMonths)
+    : 12;
+
   checkoutState = {
     planId: planId || 'business',
-    cycleMonths: 12,
-    desiredDomain: desiredFromForm,
-    domainExtension: extFromForm,
+    cycleMonths: resolvedCycle,
+    desiredDomain: resolvedDomainBase,
+    domainExtension: resolvedDomainExt || '.vn',
     selectedAddons: [],
     couponCode: '',
     discountAmount: 0,
@@ -1306,14 +1330,25 @@ function openCheckoutModal(planId) {
   document.getElementById('checkout-domain-ext').value = checkoutState.domainExtension;
   document.getElementById('checkout-coupon-input').value = '';
   document.getElementById('checkout-coupon-msg')?.classList.add('hidden');
-  document.getElementById('checkout-status-msg')?.classList.add('hidden');
+  document.getElementById('checkout-domain-check-msg')?.classList.add('hidden');
+
+  const statusMsg = document.getElementById('checkout-status-msg');
+  if (statusMsg) {
+    if (options.noticeText) {
+      statusMsg.textContent = options.noticeText;
+      statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-semibold bg-brand-50 border border-brand-200 text-brand-800';
+      statusMsg.classList.remove('hidden');
+    } else {
+      statusMsg.classList.add('hidden');
+    }
+  }
 
   document.getElementById('btn-create-order')?.classList.remove('hidden');
   document.getElementById('btn-confirm-paid')?.classList.add('hidden');
   document.getElementById('btn-checkout-view-invoice')?.classList.add('hidden');
 
   document.querySelectorAll('.cycle-btn').forEach((btn) => {
-    btn.classList.toggle('is-active', Number(btn.getAttribute('data-cycle')) === 12);
+    btn.classList.toggle('is-active', Number(btn.getAttribute('data-cycle')) === resolvedCycle);
   });
 
   renderCheckoutAddons();
@@ -1362,12 +1397,81 @@ function initCheckoutModal() {
 
   domainInput?.addEventListener('input', () => {
     checkoutState.desiredDomain = domainInput.value.trim();
+    document.getElementById('checkout-domain-check-msg')?.classList.add('hidden');
     refreshCheckoutSummary();
   });
 
   domainExt?.addEventListener('change', () => {
     checkoutState.domainExtension = domainExt.value;
+    document.getElementById('checkout-domain-check-msg')?.classList.add('hidden');
     refreshCheckoutSummary();
+  });
+
+  const checkoutCheckDomainBtn = document.getElementById('btn-checkout-check-domain');
+  const checkoutDomainMsg = document.getElementById('checkout-domain-check-msg');
+  checkoutCheckDomainBtn?.addEventListener('click', async () => {
+    const rawName = (domainInput?.value || '').trim();
+    const extVal = domainExt?.value || '.vn';
+    if (!rawName) {
+      if (checkoutDomainMsg) {
+        checkoutDomainMsg.textContent = 'Vui lòng nhập tên miền trước khi bấm Kiểm Tra.';
+        checkoutDomainMsg.className = 'mt-2 rounded-lg p-2 text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800';
+        checkoutDomainMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    checkoutCheckDomainBtn.disabled = true;
+    checkoutCheckDomainBtn.textContent = 'Đang KT...';
+    try {
+      const headers = {};
+      if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
+      const res = await fetch(
+        `/api/domains/check?name=${encodeURIComponent(rawName)}&ext=${encodeURIComponent(extVal)}`,
+        { headers }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Không kiểm tra được tên miền.');
+      }
+
+      if (domainInput && data.baseName) {
+        domainInput.value = data.baseName;
+        checkoutState.desiredDomain = data.baseName;
+        refreshCheckoutSummary();
+      }
+
+      const matched =
+        (data.results || []).find((r) => r.extension === extVal) || (data.results || [])[0];
+      if (matched && checkoutDomainMsg) {
+        if (matched.available) {
+          checkoutDomainMsg.textContent = `${matched.domain}: ${matched.reason}`;
+          checkoutDomainMsg.className =
+            'mt-2 rounded-lg p-2 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+        } else {
+          const altList = (data.results || [])
+            .filter((r) => r.available)
+            .map((r) => r.domain)
+            .concat((data.suggestions || []).map((s) => s.domain))
+            .slice(0, 2);
+          const altHint = altList.length ? ` — Gợi ý còn trống: ${altList.join(', ')}` : '';
+          checkoutDomainMsg.textContent = `${matched.domain}: ${matched.reason}${altHint}`;
+          checkoutDomainMsg.className =
+            'mt-2 rounded-lg p-2 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+        }
+        checkoutDomainMsg.classList.remove('hidden');
+      }
+    } catch (err) {
+      if (checkoutDomainMsg) {
+        checkoutDomainMsg.textContent = err.message;
+        checkoutDomainMsg.className =
+          'mt-2 rounded-lg p-2 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+        checkoutDomainMsg.classList.remove('hidden');
+      }
+    } finally {
+      checkoutCheckDomainBtn.disabled = false;
+      checkoutCheckDomainBtn.textContent = 'Kiểm Tra';
+    }
   });
 
   addonsContainer?.addEventListener('change', (event) => {
@@ -1818,6 +1922,13 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
                 isCompleted
                   ? `<button
                       type="button"
+                      data-renew-order-id="${escapeHtml(o.id)}"
+                      class="btn-renew-service py-2 px-3.5 rounded-xl border border-emerald-600 text-emerald-700 hover:bg-emerald-50 text-xs font-semibold transition-all"
+                    >
+                      Gia Hạn / Nâng Cấp
+                    </button>
+                    <button
+                      type="button"
                       data-cpanel-order-id="${escapeHtml(o.id)}"
                       class="btn-open-cpanel py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all"
                     >
@@ -1876,6 +1987,13 @@ function openHostingControlPanelModal(order) {
   const bandwidthSpec = foundPlan.bandwidth || 'Không giới hạn';
   const visitsSpec = Number(foundPlan.recommendedVisits || 30000).toLocaleString('vi-VN');
   const domainDisplay = order.domainName || `${slugBase}.hostingadvisor.vn`;
+
+  const plansList = window.PLANS_DATA || [];
+  const currentIdx = plansList.findIndex((p) => p.id === order.planId || p.name === order.planName);
+  const nextUpgradePlan =
+    currentIdx >= 0 && currentIdx < plansList.length - 1
+      ? plansList[currentIdx + 1]
+      : plansList[plansList.length - 1] || { id: 'vps-pro', name: 'VPS Pro', pricePerMonth: 450000 };
 
   if (titleEl) {
     titleEl.textContent = `Quản Lý Gói Hosting ${order.planName} — ${domainDisplay}`;
@@ -2035,6 +2153,36 @@ function openHostingControlPanelModal(order) {
 
         <div id="cpanel-action-feedback" class="hidden rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-900"></div>
       </div>
+
+      <!-- 5. Gia hạn chu kỳ hoặc Nâng cấp lên gói Hosting cao hơn -->
+      <div class="rounded-2xl border border-brand-200 bg-brand-50/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-brand-700">
+            5. Gia Hạn Dịch Vụ &amp; Nâng Cấp Tài Nguyên Máy Chủ
+          </div>
+          <p class="text-xs text-slate-600 mt-0.5">
+            Giữ nguyên tên miền <strong>${escapeHtml(domainDisplay)}</strong> và dữ liệu hiện tại khi gia hạn thêm năm hoặc nâng cấp lên gói cao hơn.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            data-renew-order-id="${escapeHtml(order.id)}"
+            class="btn-cpanel-renew py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-brand-300 text-brand-700 text-xs font-bold transition-all"
+          >
+            Gia Hạn Gói ${escapeHtml(order.planName)}
+          </button>
+          <button
+            type="button"
+            data-upgrade-order-id="${escapeHtml(order.id)}"
+            data-upgrade-plan-id="${escapeHtml(nextUpgradePlan.id)}"
+            data-upgrade-plan-name="${escapeHtml(nextUpgradePlan.name)}"
+            class="btn-cpanel-upgrade py-2 px-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all"
+          >
+            Nâng Cấp Lên Gói ${escapeHtml(nextUpgradePlan.name)}
+          </button>
+        </div>
+      </div>
     </div>
   `;
 
@@ -2083,6 +2231,23 @@ function initOrdersAndInvoiceModals() {
       return;
     }
 
+    const renewBtn = event.target.closest('.btn-renew-service');
+    if (renewBtn) {
+      const id = renewBtn.getAttribute('data-renew-order-id');
+      const order = cachedMyOrders.find((o) => o.id === id);
+      if (order) {
+        const parsed = splitDomainAndExt(order.domainName);
+        document.getElementById('my-orders-modal')?.classList.add('hidden');
+        openCheckoutModal(order.planId || 'business', {
+          domainBase: parsed.baseName,
+          domainExt: parsed.ext,
+          cycleMonths: Number(order.billingCycleMonths) || 12,
+          noticeText: `Chế độ Gia hạn / Nâng cấp cho đơn ${order.id} (Tên miền giữ nguyên: ${order.domainName || 'Không kèm tên miền'}). Bạn có thể chọn chu kỳ mới bên dưới.`
+        });
+      }
+      return;
+    }
+
     const cpanelBtn = event.target.closest('.btn-open-cpanel');
     if (cpanelBtn) {
       const id = cpanelBtn.getAttribute('data-cpanel-order-id');
@@ -2116,6 +2281,44 @@ function initOrdersAndInvoiceModals() {
       setTimeout(() => {
         copyBtn.textContent = prev;
       }, 1200);
+      return;
+    }
+
+    const cpRenewBtn = event.target.closest('.btn-cpanel-renew');
+    if (cpRenewBtn) {
+      const id = cpRenewBtn.getAttribute('data-renew-order-id');
+      const order = cachedMyOrders.find((o) => o.id === id);
+      if (order) {
+        const parsed = splitDomainAndExt(order.domainName);
+        cpanelModal?.classList.add('hidden');
+        document.getElementById('my-orders-modal')?.classList.add('hidden');
+        openCheckoutModal(order.planId || 'business', {
+          domainBase: parsed.baseName,
+          domainExt: parsed.ext,
+          cycleMonths: Number(order.billingCycleMonths) || 12,
+          noticeText: `Gia hạn gói Hosting ${order.planName} cho tên miền ${order.domainName || order.id}. Hệ thống sẽ cộng dồn thời hạn sử dụng sau khi thanh toán.`
+        });
+      }
+      return;
+    }
+
+    const cpUpgradeBtn = event.target.closest('.btn-cpanel-upgrade');
+    if (cpUpgradeBtn) {
+      const id = cpUpgradeBtn.getAttribute('data-upgrade-order-id');
+      const targetPlanId = cpUpgradeBtn.getAttribute('data-upgrade-plan-id') || 'shop-pro';
+      const targetPlanName = cpUpgradeBtn.getAttribute('data-upgrade-plan-name') || 'Shop Pro';
+      const order = cachedMyOrders.find((o) => o.id === id);
+      if (order) {
+        const parsed = splitDomainAndExt(order.domainName);
+        cpanelModal?.classList.add('hidden');
+        document.getElementById('my-orders-modal')?.classList.add('hidden');
+        openCheckoutModal(targetPlanId, {
+          domainBase: parsed.baseName,
+          domainExt: parsed.ext,
+          cycleMonths: Number(order.billingCycleMonths) || 12,
+          noticeText: `Nâng cấp từ gói ${order.planName} lên gói ${targetPlanName} (Giữ nguyên tên miền ${order.domainName || order.id} và toàn bộ dữ liệu).`
+        });
+      }
       return;
     }
 
@@ -2155,7 +2358,7 @@ function initOrdersAndInvoiceModals() {
   });
 
   // Cho phép bấm ra vùng tối bên ngoài hoặc bấm phím ESC để đóng nhanh mọi cửa sổ Modal
-  ['invoice-modal', 'cpanel-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
+  ['invoice-modal', 'cpanel-modal', 'profile-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
     const m = document.getElementById(modalId);
     m?.addEventListener('click', (event) => {
       if (event.target === m) {
@@ -2166,7 +2369,7 @@ function initOrdersAndInvoiceModals() {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      ['invoice-modal', 'cpanel-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
+      ['invoice-modal', 'cpanel-modal', 'profile-modal', 'checkout-modal', 'my-orders-modal', 'auth-modal', 'lead-modal'].forEach((modalId) => {
         document.getElementById(modalId)?.classList.add('hidden');
       });
     }
@@ -2740,6 +2943,274 @@ function initCustomerReviewsForm() {
   });
 }
 
+// =========================================================
+// 8. HỒ SƠ CÁ NHÂN & ĐỔI MẬT KHẨU + KIỂM TRA TÊN MIỀN TRỰC TUYẾN
+// =========================================================
+
+function openProfileModal() {
+  if (!currentAuthUser || !currentAuthToken) return;
+  const modal = document.getElementById('profile-modal');
+  if (!modal) return;
+
+  const userDisp = document.getElementById('profile-username-display');
+  const roleDisp = document.getElementById('profile-role-display');
+  const fullNameEl = document.getElementById('profile-fullname');
+  const phoneEl = document.getElementById('profile-phone');
+  const emailEl = document.getElementById('profile-email');
+  const curPassEl = document.getElementById('profile-current-password');
+  const newPassEl = document.getElementById('profile-new-password');
+  const msgEl = document.getElementById('profile-msg');
+
+  if (userDisp) userDisp.textContent = `@${currentAuthUser.username || ''}`;
+  if (roleDisp) {
+    const roleMap = { admin: 'Quản trị viên (Admin)', staff: 'Nhân sự (Staff)', customer: 'Khách hàng' };
+    roleDisp.textContent = roleMap[currentAuthUser.role] || currentAuthUser.role || 'Khách hàng';
+  }
+  if (fullNameEl) fullNameEl.value = currentAuthUser.fullName || '';
+  if (phoneEl) phoneEl.value = currentAuthUser.phone || '';
+  if (emailEl) emailEl.value = currentAuthUser.email || '';
+  if (curPassEl) curPassEl.value = '';
+  if (newPassEl) newPassEl.value = '';
+  if (msgEl) msgEl.classList.add('hidden');
+
+  modal.classList.remove('hidden');
+}
+
+function initProfileModal() {
+  const greetingBtn = document.getElementById('nav-user-greeting');
+  const modal = document.getElementById('profile-modal');
+  const closeBtn = document.getElementById('btn-close-profile');
+  const cancelBtn = document.getElementById('btn-cancel-profile');
+  const form = document.getElementById('profile-form');
+  const saveBtn = document.getElementById('btn-save-profile');
+  const msgEl = document.getElementById('profile-msg');
+
+  greetingBtn?.addEventListener('click', openProfileModal);
+  const closeModal = () => modal?.classList.add('hidden');
+  closeBtn?.addEventListener('click', closeModal);
+  cancelBtn?.addEventListener('click', closeModal);
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!currentAuthToken) return;
+
+    const fullName = document.getElementById('profile-fullname')?.value.trim() || '';
+    const phone = document.getElementById('profile-phone')?.value.trim() || '';
+    const email = document.getElementById('profile-email')?.value.trim() || '';
+    const currentPassword = document.getElementById('profile-current-password')?.value || '';
+    const newPassword = document.getElementById('profile-new-password')?.value || '';
+
+    if (!fullName || fullName.length < 2) {
+      msgEl.textContent = 'Vui lòng nhập Họ và tên hợp lệ (tối thiểu 2 ký tự).';
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+
+    if (!/^(0|\+84)\d{9}$/.test(phone)) {
+      msgEl.textContent = 'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 0 hoặc +84).';
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msgEl.textContent = 'Địa chỉ Email không đúng định dạng.';
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      msgEl.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự.';
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+      msgEl.classList.remove('hidden');
+      return;
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Đang lưu...';
+    }
+    msgEl.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentAuthToken}`
+        },
+        body: JSON.stringify({ fullName, phone, email, currentPassword, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Không thể cập nhật hồ sơ.');
+      }
+
+      currentAuthUser = data.user;
+      if (data.token) {
+        currentAuthToken = data.token;
+        localStorage.setItem('ha_token', currentAuthToken);
+      }
+      updateNavbarAuthUI();
+
+      document.getElementById('profile-current-password').value = '';
+      document.getElementById('profile-new-password').value = '';
+
+      msgEl.textContent = newPassword
+        ? 'Đã cập nhật hồ sơ cá nhân và đổi mật khẩu mới thành công!'
+        : 'Đã lưu cập nhật thông tin hồ sơ cá nhân thành công!';
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+      msgEl.classList.remove('hidden');
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700';
+      msgEl.classList.remove('hidden');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Lưu Thay Đổi Hồ Sơ';
+      }
+    }
+  });
+}
+
+function initDomainChecker() {
+  const form = document.getElementById('domain-checker-form');
+  const input = document.getElementById('domain-check-input');
+  const submitBtn = document.getElementById('btn-domain-check');
+  const resultsBox = document.getElementById('domain-check-results');
+
+  if (!form || !input || !resultsBox) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const rawVal = input.value.trim();
+    if (!rawVal) {
+      resultsBox.innerHTML =
+        '<div class="text-xs font-semibold text-red-600">Vui lòng nhập tên thương hiệu hoặc tên miền bạn muốn kiểm tra.</div>';
+      resultsBox.classList.remove('hidden');
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang kiểm tra DNS...';
+    }
+    resultsBox.classList.remove('hidden');
+    resultsBox.innerHTML =
+      '<div class="text-xs text-slate-500 py-2">Đang truy vấn máy chủ DNS quốc tế và Cơ sở dữ liệu HostingAdvisor...</div>';
+
+    try {
+      const headers = {};
+      if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
+      const res = await fetch(`/api/domains/check?name=${encodeURIComponent(rawVal)}`, { headers });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Không kiểm tra được tên miền.');
+      }
+
+      const cardsHtml = (data.results || [])
+        .map((r) => {
+          if (r.available) {
+            return `
+              <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/60 flex flex-col justify-between gap-2">
+                <div>
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="font-bold text-sm text-slate-900 break-all">${escapeHtml(r.domain)}</span>
+                    <span class="shrink-0 text-[11px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                      Còn trống
+                    </span>
+                  </div>
+                  <div class="text-xs text-slate-600 mt-1">
+                    Giá lẻ: <strong>${formatVND(r.price)}/năm</strong> (Miễn phí năm đầu khi mua gói Basic/Business/Shop Pro)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  data-pick-domain-base="${escapeHtml(r.baseName)}"
+                  data-pick-domain-ext="${escapeHtml(r.extension)}"
+                  class="btn-pick-checked-domain w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all"
+                >
+                  Chọn Mua Kèm Hosting
+                </button>
+              </div>
+            `;
+          }
+          return `
+            <div class="p-3 rounded-xl border border-red-200 bg-red-50/50 flex flex-col justify-between gap-2">
+              <div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="font-bold text-sm text-slate-700 line-through break-all">${escapeHtml(r.domain)}</span>
+                  <span class="shrink-0 text-[11px] font-bold text-red-700 bg-white px-2 py-0.5 rounded border border-red-200">
+                    Đã có chủ
+                  </span>
+                </div>
+                <div class="text-xs text-red-700 mt-1">
+                  ${escapeHtml(r.reason)}
+                </div>
+              </div>
+              <span class="w-full py-1.5 px-3 rounded-lg bg-slate-200 text-slate-500 text-xs font-semibold text-center cursor-not-allowed">
+                Không thể đăng ký mới
+              </span>
+            </div>
+          `;
+        })
+        .join('');
+
+      const suggestionsHtml =
+        Array.isArray(data.suggestions) && data.suggestions.length
+          ? `
+            <div class="mt-3 pt-2.5 border-t border-slate-200 flex flex-wrap items-center gap-2 text-xs">
+              <span class="font-bold text-slate-700">Gợi ý tên miền tương tự còn trống:</span>
+              ${data.suggestions
+                .map(
+                  (s) => `
+                    <button
+                      type="button"
+                      data-pick-domain-base="${escapeHtml(s.baseName)}"
+                      data-pick-domain-ext="${escapeHtml(s.extension)}"
+                      class="btn-pick-checked-domain py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold transition-all"
+                    >
+                      ${escapeHtml(s.domain)} (Chọn mua)
+                    </button>
+                  `
+                )
+                .join('')}
+            </div>
+          `
+          : '';
+
+      resultsBox.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          ${cardsHtml}
+        </div>
+        ${suggestionsHtml}
+      `;
+    } catch (err) {
+      resultsBox.innerHTML = `<div class="text-xs font-semibold text-red-600">${escapeHtml(err.message)}</div>`;
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Kiểm Tra Tên Miền';
+      }
+    }
+  });
+
+  resultsBox.addEventListener('click', (event) => {
+    const pickBtn = event.target.closest('.btn-pick-checked-domain');
+    if (!pickBtn) return;
+    const domainBase = pickBtn.getAttribute('data-pick-domain-base') || '';
+    const domainExt = pickBtn.getAttribute('data-pick-domain-ext') || '.vn';
+    openCheckoutModal('business', {
+      domainBase,
+      domainExt,
+      noticeText: `Đã chọn tên miền còn trống "${domainBase}${domainExt}". Tên miền này được tặng miễn phí 100% năm đầu khi đăng ký kèm gói Business!`
+    });
+  });
+}
+
 // Luôn cuộn lên đầu trang khi tải lại trang (F5 / Reload)
 if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
@@ -2761,6 +3232,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFAQAccordion();
   initSurveyFormAndCatalog();
   initAuthModal();
+  initProfileModal();
+  initDomainChecker();
   initCheckoutModal();
   initOrdersAndInvoiceModals();
   initLeadModal();
