@@ -845,7 +845,7 @@ app.post('/api/orders', async (req, res) => {
       totalAmount,
       paymentMethod: 'vietqr',
       paymentStatus: 'unpaid',
-      status: 'paid_processing',
+      status: 'pending_payment',
       qrUrl,
       serviceDetails: null,
       assignedTo: null,
@@ -854,7 +854,7 @@ app.post('/api/orders', async (req, res) => {
       timeline: [
         {
           time: nowIso,
-          action: `Đã tiếp nhận đơn đặt hàng thành công (Tổng thanh toán: ${totalAmount.toLocaleString('vi-VN')}đ)`,
+          action: `Khách hàng tạo đơn mua hàng, chờ thanh toán VietQR (Tổng thanh toán: ${totalAmount.toLocaleString('vi-VN')}đ)`,
           by: finalCustomerName
         }
       ],
@@ -869,7 +869,7 @@ app.post('/api/orders', async (req, res) => {
 
 /**
  * POST /api/orders/:id/confirm-payment
- * Cho phép bấm 1 nút để xác nhận thanh toán & kích hoạt đơn hàng ngay lập tức (không cần chuyển khoản thật)
+ * Khách hàng báo đã chuyển khoản VietQR -> Chuyển đơn sang trạng thái chờ Admin/Staff duyệt tiền (paid_processing)
  */
 app.post('/api/orders/:id/confirm-payment', async (req, res) => {
   try {
@@ -880,21 +880,13 @@ app.post('/api/orders/:id/confirm-payment', async (req, res) => {
     }
 
     const nowIso = new Date().toISOString();
-    order.status = 'completed';
-    order.paymentStatus = 'paid';
-    if (!order.serviceDetails) {
-      const randomOctet = Math.floor(Math.random() * 200) + 20;
-      order.serviceDetails = {
-        hostingIp: `103.221.220.${randomOctet}`,
-        nameServers: ['ns1.hostingadvisor.vn', 'ns2.hostingadvisor.vn'],
-        controlPanelUrl: 'https://cp.hostingadvisor.vn:2083',
-        activatedAt: nowIso
-      };
+    if (order.status !== 'completed' && order.paymentStatus !== 'paid') {
+      order.status = 'paid_processing';
     }
     order.timeline = Array.isArray(order.timeline) ? order.timeline : [];
     order.timeline.push({
       time: nowIso,
-      action: `Đã xác nhận hoàn tất đơn hàng & cấp phát IP Hosting (${order.serviceDetails.hostingIp})`,
+      action: 'Khách hàng xác nhận đã chuyển khoản VietQR, đang chờ Admin/Staff kiểm tra và duyệt tiền',
       by: order.customerName
     });
     const updated = await db.updateOrder(order);

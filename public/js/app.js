@@ -1400,8 +1400,8 @@ function initCheckoutModal() {
 
       refreshCheckoutSummary();
 
-      statusMsg.textContent = `Đã tiếp nhận đơn hàng ${data.order.id} lên hệ thống! Bấm tiếp nút màu xanh lá bên dưới để xác nhận hoàn tất đơn và nhận IP Hosting ngay (không cần chuyển khoản thật).`;
-      statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-800';
+      statusMsg.textContent = `Đã khởi tạo đơn hàng ${data.order.id} (Trạng thái: Chờ thanh toán). Sau khi quét mã VietQR, hãy bấm nút "2. Tôi Đã Chuyển Khoản Thành Công" bên dưới để thông báo cho bộ phận duyệt đơn.`;
+      statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-800';
       statusMsg.classList.remove('hidden');
 
       createOrderBtn.classList.add('hidden');
@@ -1416,11 +1416,11 @@ function initCheckoutModal() {
     }
   });
 
-  // Bước 2: Khách bấm xác nhận thanh toán -> Tự động kích hoạt đơn & cấp IP ngay lập tức
+  // Bước 2: Khách bấm xác nhận đã chuyển khoản -> Chuyển trạng thái đơn sang "Chờ duyệt tiền (Đã CK)" bên Admin
   confirmPaidBtn?.addEventListener('click', async () => {
     if (!checkoutState.createdOrder) return;
     confirmPaidBtn.disabled = true;
-    confirmPaidBtn.textContent = 'Đang kích hoạt đơn hàng...';
+    confirmPaidBtn.textContent = 'Đang gửi xác nhận chuyển khoản...';
 
     try {
       const headers = {};
@@ -1431,13 +1431,12 @@ function initCheckoutModal() {
       });
       const data = await res.json();
       confirmPaidBtn.disabled = false;
-      confirmPaidBtn.textContent = 'Đã Xác Nhận & Kích Hoạt Thành Công';
+      confirmPaidBtn.textContent = 'Đã Gửi Xác Nhận Chuyển Khoản';
 
       if (res.ok && data.ok) {
         checkoutState.createdOrder = data.order;
         confirmPaidBtn.classList.add('hidden');
-        const ipText = data.order.serviceDetails?.hostingIp ? ` | Đã cấp IP Hosting: ${data.order.serviceDetails.hostingIp}` : '';
-        statusMsg.textContent = `Hoàn tất đơn hàng ${data.order.id} (ĐÃ THANH TOÁN)${ipText}! Bạn có thể bấm nút bên dưới để xem & in Hóa đơn Điện tử.`;
+        statusMsg.textContent = `Đã ghi nhận thông báo chuyển khoản cho đơn ${data.order.id} (Trạng thái: Chờ duyệt tiền). Quản trị viên sẽ xác nhận và kích hoạt IP Hosting cho bạn ngay!`;
         statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
         statusMsg.classList.remove('hidden');
       }
@@ -1688,6 +1687,17 @@ async function openMyOrdersModal(phoneOverride = '') {
             }
 
             <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
+              ${
+                o.status === 'pending_payment'
+                  ? `<button
+                      type="button"
+                      data-confirm-order-id="${escapeHtml(o.id)}"
+                      class="btn-myorder-confirm-paid py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all"
+                    >
+                      Tôi Đã Chuyển Khoản
+                    </button>`
+                  : ''
+              }
               <button
                 type="button"
                 data-invoice-order-id="${escapeHtml(o.id)}"
@@ -1720,7 +1730,33 @@ function initOrdersAndInvoiceModals() {
     document.getElementById('my-orders-modal')?.classList.add('hidden');
   });
 
-  myOrdersContainer?.addEventListener('click', (event) => {
+  myOrdersContainer?.addEventListener('click', async (event) => {
+    const confirmBtn = event.target.closest('.btn-myorder-confirm-paid');
+    if (confirmBtn) {
+      const orderId = confirmBtn.getAttribute('data-confirm-order-id');
+      if (!orderId) return;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Đang gửi xác nhận...';
+      try {
+        const headers = {};
+        if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/confirm-payment`, {
+          method: 'POST',
+          headers
+        });
+        if (res.ok) {
+          openMyOrdersModal(lookupPhoneInput?.value.trim() || '');
+        } else {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Tôi Đã Chuyển Khoản';
+        }
+      } catch (e) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Tôi Đã Chuyển Khoản';
+      }
+      return;
+    }
+
     const btn = event.target.closest('.btn-view-order-invoice');
     if (!btn) return;
     const id = btn.getAttribute('data-invoice-order-id');
