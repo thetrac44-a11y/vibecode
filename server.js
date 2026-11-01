@@ -909,15 +909,14 @@ app.get('/api/orders/my-orders', async (req, res) => {
 
     let myOrders = [];
     if (tokenUser) {
-      myOrders = allOrders.filter(
-        (o) => o.userId === tokenUser.id || (tokenUser.phone && o.phone === tokenUser.phone)
-      );
-    }
-    if (queryPhone) {
-      const byPhone = allOrders.filter((o) => String(o.phone).trim() === queryPhone);
-      const map = new Map();
-      [...myOrders, ...byPhone].forEach((o) => map.set(o.id, o));
-      myOrders = Array.from(map.values());
+      // Khi đã đăng nhập tài khoản: chỉ lấy đúng đơn hàng thuộc userId của tài khoản đó
+      myOrders = allOrders.filter((o) => o.userId === tokenUser.id);
+      if (queryPhone) {
+        myOrders = myOrders.filter((o) => String(o.phone).trim() === queryPhone);
+      }
+    } else if (queryPhone) {
+      // Khi chưa đăng nhập (Khách vãng lai tra cứu bằng SĐT)
+      myOrders = allOrders.filter((o) => String(o.phone).trim() === queryPhone);
     }
 
     return res.json({ ok: true, orders: myOrders });

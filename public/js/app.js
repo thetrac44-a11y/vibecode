@@ -879,7 +879,7 @@ function syncUserSessionFields() {
   if (custEmailInput) custEmailInput.value = email;
 
   const lookupPhoneInput = document.getElementById('lookup-order-phone');
-  if (lookupPhoneInput) lookupPhoneInput.value = phone;
+  if (lookupPhoneInput) lookupPhoneInput.value = '';
 
   const revNameInput = document.getElementById('rev-customer-name');
   if (revNameInput) revNameInput.value = fullName;
@@ -1643,10 +1643,8 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
   modal.classList.remove('hidden');
 
   if (!isManualLookup) {
-    if (currentAuthUser && currentAuthToken) {
-      if (phoneInput) phoneInput.value = currentAuthUser.phone || '';
-    } else {
-      if (phoneInput) phoneInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (!currentAuthUser || !currentAuthToken) {
       cachedMyOrders = [];
       container.innerHTML =
         '<p class="text-sm text-slate-500 py-8 text-center">Nhập Số điện thoại bạn đã dùng khi đặt hàng vào ô bên trên rồi bấm "Tra Cứu Đơn Hàng" (hoặc Đăng nhập tài khoản).</p>';
@@ -1656,7 +1654,7 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
 
   const lookupPhone = isManualLookup
     ? String(phoneOverride || phoneInput?.value || '').trim()
-    : String(currentAuthUser?.phone || '').trim();
+    : '';
 
   if (!currentAuthToken && !lookupPhone) {
     cachedMyOrders = [];
