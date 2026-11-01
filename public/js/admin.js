@@ -4,6 +4,10 @@
  */
 
 let adminToken = localStorage.getItem('ha_admin_token') || localStorage.getItem('ha_token') || '';
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
 let adminUser = null;
 let allOrders = [];
 let staffUsers = [];

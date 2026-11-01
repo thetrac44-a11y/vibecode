@@ -2356,8 +2356,18 @@ function initCustomerReviewsForm() {
   });
 }
 
+// Luôn cuộn lên đầu trang khi tải lại trang (F5 / Reload)
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+if (window.location.hash) {
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+window.scrollTo(0, 0);
+
 // Khởi chạy toàn bộ ứng dụng khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
+  window.scrollTo(0, 0);
   restoreAuthSession();
   renderCustomerReviews([]);
   loadDynamicCatalog();
