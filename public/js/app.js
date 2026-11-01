@@ -877,6 +877,7 @@ function updateNavbarAuthUI() {
     userBox?.classList.add('flex');
     if (greeting) {
       greeting.textContent = `Chào, ${currentAuthUser.fullName}`;
+      greeting.title = currentAuthUser.fullName || '';
     }
 
     // Chỉ tài khoản Admin hoặc Staff mới nhìn thấy nút Cổng Quản Trị
