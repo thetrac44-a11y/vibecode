@@ -865,6 +865,49 @@ function renderFAQAccordion() {
 // 3. QUẢN LÝ AUTH KHÁCH HÀNG (ĐĂNG NHẬP / ĐĂNG KÝ / JWT)
 // =========================================================
 
+function syncUserSessionFields() {
+  const isLogged = Boolean(currentAuthUser && currentAuthToken);
+  const fullName = isLogged ? (currentAuthUser.fullName || '') : '';
+  const phone = isLogged ? (currentAuthUser.phone || '') : '';
+  const email = isLogged ? (currentAuthUser.email || '') : '';
+
+  const custNameInput = document.getElementById('checkout-cust-name');
+  const custPhoneInput = document.getElementById('checkout-cust-phone');
+  const custEmailInput = document.getElementById('checkout-cust-email');
+  if (custNameInput) custNameInput.value = fullName;
+  if (custPhoneInput) custPhoneInput.value = phone;
+  if (custEmailInput) custEmailInput.value = email;
+
+  const lookupPhoneInput = document.getElementById('lookup-order-phone');
+  if (lookupPhoneInput) lookupPhoneInput.value = phone;
+
+  const revNameInput = document.getElementById('rev-customer-name');
+  if (revNameInput) revNameInput.value = fullName;
+
+  const leadNameInput = document.getElementById('lead-name');
+  const leadPhoneInput = document.getElementById('lead-phone');
+  if (leadNameInput) leadNameInput.value = fullName;
+  if (leadPhoneInput) leadPhoneInput.value = phone;
+
+  const aiLeadName = document.getElementById('ai-lead-name');
+  const aiLeadPhone = document.getElementById('ai-lead-phone');
+  const aiLeadEmail = document.getElementById('ai-lead-email');
+  if (aiLeadName) aiLeadName.value = fullName;
+  if (aiLeadPhone) aiLeadPhone.value = phone;
+  if (aiLeadEmail) aiLeadEmail.value = email;
+
+  if (!isLogged) {
+    localStorage.removeItem('ha_last_buyer');
+    cachedMyOrders = [];
+    if (checkoutState) checkoutState.createdOrder = null;
+    const myOrdersContainer = document.getElementById('my-orders-container');
+    if (myOrdersContainer) {
+      myOrdersContainer.innerHTML =
+        '<p class="text-sm text-slate-500 py-8 text-center">Nhập Số điện thoại bạn đã dùng khi đặt hàng vào ô bên trên rồi bấm "Tra Cứu Đơn Hàng" (hoặc Đăng nhập tài khoản).</p>';
+    }
+  }
+}
+
 function updateNavbarAuthUI() {
   const guestBox = document.getElementById('nav-guest-box');
   const userBox = document.getElementById('nav-user-box');
@@ -886,6 +929,7 @@ function updateNavbarAuthUI() {
       localStorage.setItem('ha_admin_token', currentAuthToken);
     } else {
       adminLink?.classList.add('hidden');
+      localStorage.removeItem('ha_admin_token');
     }
   } else {
     guestBox?.classList.remove('hidden');
@@ -893,6 +937,8 @@ function updateNavbarAuthUI() {
     userBox?.classList.remove('flex');
     adminLink?.classList.add('hidden');
   }
+
+  syncUserSessionFields();
 }
 
 async function restoreAuthSession() {
@@ -978,6 +1024,11 @@ function initAuthModal() {
     currentAuthUser = null;
     localStorage.removeItem('ha_token');
     localStorage.removeItem('ha_admin_token');
+    localStorage.removeItem('ha_last_buyer');
+    const loginUserEl = document.getElementById('login-username');
+    const loginPassEl = document.getElementById('login-password');
+    if (loginUserEl) loginUserEl.value = '';
+    if (loginPassEl) loginPassEl.value = '';
     updateNavbarAuthUI();
   });
 
@@ -1187,20 +1238,13 @@ function openCheckoutModal(planId) {
     createdOrder: null
   };
 
-  let savedBuyer = {};
-  try {
-    savedBuyer = JSON.parse(localStorage.getItem('ha_last_buyer') || '{}') || {};
-  } catch (e) {
-    savedBuyer = {};
-  }
-
   const custNameInput = document.getElementById('checkout-cust-name');
   const custPhoneInput = document.getElementById('checkout-cust-phone');
   const custEmailInput = document.getElementById('checkout-cust-email');
 
-  if (custNameInput) custNameInput.value = currentAuthUser?.fullName || savedBuyer.name || '';
-  if (custPhoneInput) custPhoneInput.value = currentAuthUser?.phone || savedBuyer.phone || '';
-  if (custEmailInput) custEmailInput.value = currentAuthUser?.email || savedBuyer.email || '';
+  if (custNameInput) custNameInput.value = currentAuthUser ? (currentAuthUser.fullName || '') : '';
+  if (custPhoneInput) custPhoneInput.value = currentAuthUser ? (currentAuthUser.phone || '') : '';
+  if (custEmailInput) custEmailInput.value = currentAuthUser ? (currentAuthUser.email || '') : '';
 
   document.getElementById('checkout-domain-name').value = checkoutState.desiredDomain;
   document.getElementById('checkout-domain-ext').value = checkoutState.domainExtension;
@@ -1383,10 +1427,6 @@ function initCheckoutModal() {
       }
 
       checkoutState.createdOrder = data.order;
-      localStorage.setItem(
-        'ha_last_buyer',
-        JSON.stringify({ name: custName, phone: custPhone, email: custEmail })
-      );
 
       // Lưu đồng thời vào localStorage ("leads") chuẩn Đề 1
       saveLeadToLocalStorage({
@@ -1594,7 +1634,7 @@ function openInvoiceModal(order) {
   modal.classList.remove('hidden');
 }
 
-async function openMyOrdersModal(phoneOverride = '') {
+async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
   const modal = document.getElementById('my-orders-modal');
   const container = document.getElementById('my-orders-container');
   const phoneInput = document.getElementById('lookup-order-phone');
@@ -1602,20 +1642,26 @@ async function openMyOrdersModal(phoneOverride = '') {
 
   modal.classList.remove('hidden');
 
-  let savedBuyer = {};
-  try {
-    savedBuyer = JSON.parse(localStorage.getItem('ha_last_buyer') || '{}') || {};
-  } catch (e) {
-    savedBuyer = {};
+  if (!isManualLookup) {
+    if (currentAuthUser && currentAuthToken) {
+      if (phoneInput) phoneInput.value = currentAuthUser.phone || '';
+    } else {
+      if (phoneInput) phoneInput.value = '';
+      cachedMyOrders = [];
+      container.innerHTML =
+        '<p class="text-sm text-slate-500 py-8 text-center">Nhập Số điện thoại bạn đã dùng khi đặt hàng vào ô bên trên rồi bấm "Tra Cứu Đơn Hàng" (hoặc Đăng nhập tài khoản).</p>';
+      return;
+    }
   }
 
-  const lookupPhone = String(phoneOverride || phoneInput?.value || currentAuthUser?.phone || savedBuyer.phone || '').trim();
-  if (phoneInput && lookupPhone && !phoneInput.value) {
-    phoneInput.value = lookupPhone;
-  }
+  const lookupPhone = isManualLookup
+    ? String(phoneOverride || phoneInput?.value || '').trim()
+    : String(currentAuthUser?.phone || '').trim();
 
   if (!currentAuthToken && !lookupPhone) {
-    container.innerHTML = '<p class="text-sm text-slate-500 py-8 text-center">Nhập Số điện thoại bạn đã dùng khi đặt hàng vào ô bên trên rồi bấm "Tra Cứu Đơn Hàng" (hoặc Đăng nhập tài khoản).</p>';
+    cachedMyOrders = [];
+    container.innerHTML =
+      '<p class="text-sm text-slate-500 py-8 text-center">Nhập Số điện thoại bạn đã dùng khi đặt hàng vào ô bên trên rồi bấm "Tra Cứu Đơn Hàng" (hoặc Đăng nhập tài khoản).</p>';
     return;
   }
 
@@ -1624,14 +1670,18 @@ async function openMyOrdersModal(phoneOverride = '') {
   try {
     const headers = {};
     if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
-    const url = lookupPhone ? `/api/orders/my-orders?phone=${encodeURIComponent(lookupPhone)}` : '/api/orders/my-orders';
+    const url =
+      isManualLookup && lookupPhone
+        ? `/api/orders/my-orders?phone=${encodeURIComponent(lookupPhone)}`
+        : '/api/orders/my-orders';
 
     const res = await fetch(url, { headers });
     const data = await res.json();
     cachedMyOrders = Array.isArray(data.orders) ? data.orders : [];
 
     if (cachedMyOrders.length === 0) {
-      container.innerHTML = '<p class="text-sm text-slate-500 py-8 text-center">Chưa tìm thấy đơn hàng nào khớp với thông tin này. Hãy chọn một gói Hosting để đặt mua nhé!</p>';
+      container.innerHTML =
+        '<p class="text-sm text-slate-500 py-8 text-center">Chưa tìm thấy đơn hàng nào khớp với thông tin này. Hãy chọn một gói Hosting để đặt mua nhé!</p>';
       return;
     }
 
@@ -1644,6 +1694,18 @@ async function openMyOrdersModal(phoneOverride = '') {
           : isProcessing
           ? '<span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">ĐANG CHỜ DUYỆT TIỀN</span>'
           : '<span class="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-full">CHỜ THANH TOÁN VIETQR</span>';
+
+        let expDateStr = '';
+        if (o.serviceDetails) {
+          const baseDate = o.serviceDetails.activatedAt || o.createdAt || Date.now();
+          const cycleMonths = Number(o.billingCycleMonths) || 12;
+          const expDateObj = o.serviceDetails.expireDate
+            ? new Date(o.serviceDetails.expireDate)
+            : new Date(new Date(baseDate).getTime() + cycleMonths * 30 * 24 * 60 * 60 * 1000);
+          expDateStr = Number.isNaN(expDateObj.getTime())
+            ? `${cycleMonths} tháng`
+            : expDateObj.toLocaleDateString('vi-VN');
+        }
 
         return `
           <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 space-y-3">
@@ -1680,7 +1742,7 @@ async function openMyOrdersModal(phoneOverride = '') {
                       <strong>Thông số kỹ thuật đã cấp:</strong> IP Hosting: <code class="font-mono font-bold">${escapeHtml(o.serviceDetails.hostingIp)}</code> |
                       Nameservers: <code class="font-mono">${escapeHtml((o.serviceDetails.nameServers || []).join(', '))}</code>
                     </div>
-                    <span>Hết hạn: ${new Date(o.serviceDetails.expireDate).toLocaleDateString('vi-VN')}</span>
+                    <span>Hết hạn: ${escapeHtml(expDateStr)}</span>
                   </div>
                 `
                 : ''
@@ -1724,8 +1786,8 @@ function initOrdersAndInvoiceModals() {
   const closeInvoiceBtn = document.getElementById('btn-close-invoice');
   const printInvoiceBtn = document.getElementById('btn-print-invoice');
 
-  openMyOrdersBtn?.addEventListener('click', () => openMyOrdersModal());
-  lookupBtn?.addEventListener('click', () => openMyOrdersModal(lookupPhoneInput?.value.trim() || ''));
+  openMyOrdersBtn?.addEventListener('click', () => openMyOrdersModal('', false));
+  lookupBtn?.addEventListener('click', () => openMyOrdersModal(lookupPhoneInput?.value.trim() || '', true));
   closeMyOrdersBtn?.addEventListener('click', () => {
     document.getElementById('my-orders-modal')?.classList.add('hidden');
   });
@@ -1745,7 +1807,7 @@ function initOrdersAndInvoiceModals() {
           headers
         });
         if (res.ok) {
-          openMyOrdersModal(lookupPhoneInput?.value.trim() || '');
+          openMyOrdersModal(lookupPhoneInput?.value.trim() || '', Boolean(!currentAuthToken && lookupPhoneInput?.value.trim()));
         } else {
           confirmBtn.disabled = false;
           confirmBtn.textContent = 'Tôi Đã Chuyển Khoản';
@@ -2370,6 +2432,7 @@ window.scrollTo(0, 0);
 // Khởi chạy toàn bộ ứng dụng khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
   window.scrollTo(0, 0);
+  localStorage.removeItem('ha_last_buyer');
   restoreAuthSession();
   renderCustomerReviews([]);
   loadDynamicCatalog();

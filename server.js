@@ -994,11 +994,14 @@ app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']),
         order.paymentStatus = 'paid';
         if (!order.serviceDetails) {
           const randomOctet = Math.floor(Math.random() * 200) + 20;
+          const cycleMonths = Number(order.billingCycleMonths) || 12;
+          const expireDateIso = new Date(Date.now() + cycleMonths * 30 * 24 * 60 * 60 * 1000).toISOString();
           order.serviceDetails = {
             hostingIp: `103.221.220.${randomOctet}`,
             nameServers: ['ns1.hostingadvisor.vn', 'ns2.hostingadvisor.vn'],
             controlPanelUrl: `https://cp.hostingadvisor.vn:2083`,
-            activatedAt: nowIso
+            activatedAt: nowIso,
+            expireDate: expireDateIso
           };
         }
         order.timeline.push({

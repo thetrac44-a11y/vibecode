@@ -709,6 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
       adminToken = data.token;
       adminUser = data.user;
       localStorage.setItem('ha_admin_token', adminToken);
+      localStorage.setItem('ha_token', adminToken);
+      localStorage.removeItem('ha_last_buyer');
       syncAdminScreenUI();
       await loadStaffAndOrders();
     } catch (err) {
@@ -721,6 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
     adminToken = '';
     adminUser = null;
     localStorage.removeItem('ha_admin_token');
+    localStorage.removeItem('ha_token');
+    localStorage.removeItem('ha_last_buyer');
     syncAdminScreenUI();
   });
 
