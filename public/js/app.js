@@ -2316,7 +2316,8 @@ function initCustomerReviewsForm() {
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Đang lưu lên Supabase...';
+    submitBtn.textContent = 'Đang gửi đánh giá...';
+    msgEl.classList.add('hidden');
     try {
       const headers = { 'Content-Type': 'application/json' };
       if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
@@ -2334,9 +2335,6 @@ function initCustomerReviewsForm() {
         return;
       }
 
-      msgEl.textContent = 'Cảm ơn bạn! Đánh giá của bạn đã được lưu trực tiếp lên Supabase PostgreSQL.';
-      msgEl.className = 'text-xs font-semibold text-emerald-700';
-      msgEl.classList.remove('hidden');
       if (commentInput) commentInput.value = '';
       if (bizInput) bizInput.value = '';
 
@@ -2345,6 +2343,10 @@ function initCustomerReviewsForm() {
         const listData = await listRes.json();
         renderCustomerReviews(listData.reviews || [], 1);
       }
+
+      msgEl.textContent = 'Cảm ơn bạn! Đánh giá của bạn đã được ghi nhận và đăng tải thành công.';
+      msgEl.className = 'text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg';
+      msgEl.classList.remove('hidden');
     } catch (err) {
       msgEl.textContent = 'Lỗi kết nối máy chủ khi gửi đánh giá.';
       msgEl.className = 'text-xs font-semibold text-red-600';
