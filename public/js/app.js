@@ -1847,10 +1847,13 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
       .map((o) => {
         const isCompleted = o.status === 'completed' || o.paymentStatus === 'paid';
         const isProcessing = o.status === 'paid_processing';
+        const isCancelled = o.status === 'cancelled';
         const badgeHtml = isCompleted
           ? '<span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">ĐÃ KÍCH HOẠT (PAID)</span>'
           : isProcessing
           ? '<span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">ĐANG CHỜ DUYỆT TIỀN</span>'
+          : isCancelled
+          ? '<span class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">ĐÃ HỦY ĐƠN</span>'
           : '<span class="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-full">CHỜ THANH TOÁN VIETQR</span>';
 
         let expDateStr = '';
@@ -1910,6 +1913,20 @@ async function openMyOrdersModal(phoneOverride = '', isManualLookup = false) {
               ${
                 o.status === 'pending_payment'
                   ? `<button
+                      type="button"
+                      data-cancel-order-id="${escapeHtml(o.id)}"
+                      class="btn-myorder-cancel py-2 px-3.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-all"
+                    >
+                      Hủy Đơn
+                    </button>
+                    <button
+                      type="button"
+                      data-qr-order-id="${escapeHtml(o.id)}"
+                      class="btn-myorder-pay-qr py-2 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all"
+                    >
+                      Lấy Mã QR Thanh Toán
+                    </button>
+                    <button
                       type="button"
                       data-confirm-order-id="${escapeHtml(o.id)}"
                       class="btn-myorder-confirm-paid py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all"
@@ -2205,6 +2222,67 @@ function initOrdersAndInvoiceModals() {
   });
 
   myOrdersContainer?.addEventListener('click', async (event) => {
+    const cancelBtn = event.target.closest('.btn-myorder-cancel');
+    if (cancelBtn) {
+      const orderId = cancelBtn.getAttribute('data-cancel-order-id');
+      if (!orderId) return;
+      cancelBtn.disabled = true;
+      cancelBtn.textContent = 'Đang hủy...';
+      try {
+        const headers = {};
+        if (currentAuthToken) headers.Authorization = `Bearer ${currentAuthToken}`;
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/cancel`, {
+          method: 'POST',
+          headers
+        });
+        if (res.ok) {
+          openMyOrdersModal(
+            lookupPhoneInput?.value.trim() || '',
+            Boolean(!currentAuthToken && lookupPhoneInput?.value.trim())
+          );
+        } else {
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = 'Hủy Đơn';
+        }
+      } catch (e) {
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = 'Hủy Đơn';
+      }
+      return;
+    }
+
+    const qrBtn = event.target.closest('.btn-myorder-pay-qr');
+    if (qrBtn) {
+      const orderId = qrBtn.getAttribute('data-qr-order-id');
+      const order = cachedMyOrders.find((o) => o.id === orderId);
+      if (order) {
+        const parsed = splitDomainAndExt(order.domainName);
+        document.getElementById('my-orders-modal')?.classList.add('hidden');
+        openCheckoutModal(order.planId || 'business', {
+          domainBase: parsed.baseName,
+          domainExt: parsed.ext,
+          cycleMonths: Number(order.billingCycleMonths) || 12
+        });
+        checkoutState.createdOrder = order;
+        checkoutState.selectedAddons = Array.isArray(order.addons) ? order.addons.map((a) => a.id) : [];
+        checkoutState.couponCode = order.couponApplied || '';
+        checkoutState.discountAmount = Number(order.discountAmount) || 0;
+        renderCheckoutAddons();
+        refreshCheckoutSummary();
+
+        const statusMsg = document.getElementById('checkout-status-msg');
+        if (statusMsg) {
+          statusMsg.textContent = `Đang hiển thị lại mã VietQR cho đơn hàng ${order.id} (Tổng tiền: ${formatVND(order.totalAmount)}). Sau khi quét mã chuyển khoản, hãy bấm nút "2. Tôi Đã Chuyển Khoản Thành Công" bên dưới.`;
+          statusMsg.className = 'mt-3 rounded-xl p-3 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-800';
+          statusMsg.classList.remove('hidden');
+        }
+        document.getElementById('btn-create-order')?.classList.add('hidden');
+        document.getElementById('btn-confirm-paid')?.classList.remove('hidden');
+        document.getElementById('btn-checkout-view-invoice')?.classList.remove('hidden');
+      }
+      return;
+    }
+
     const confirmBtn = event.target.closest('.btn-myorder-confirm-paid');
     if (confirmBtn) {
       const orderId = confirmBtn.getAttribute('data-confirm-order-id');

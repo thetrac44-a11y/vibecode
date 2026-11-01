@@ -1144,6 +1144,42 @@ app.post('/api/orders/:id/confirm-payment', async (req, res) => {
 });
 
 /**
+ * POST /api/orders/:id/cancel
+ * Khách hàng chủ động hủy đơn hàng khi đơn vẫn đang ở trạng thái chờ thanh toán (pending_payment)
+ */
+app.post('/api/orders/:id/cancel', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
+    }
+
+    if (order.status !== 'pending_payment') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Chỉ có thể hủy đơn hàng khi đơn đang ở trạng thái Chờ thanh toán.'
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    order.status = 'cancelled';
+    order.paymentStatus = 'unpaid';
+    order.timeline = Array.isArray(order.timeline) ? order.timeline : [];
+    order.timeline.push({
+      time: nowIso,
+      action: 'Khách hàng chủ động hủy đơn hàng khi chưa thanh toán',
+      by: order.customerName
+    });
+
+    const updated = await db.updateOrder(order);
+    return res.json({ ok: true, order: updated });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/orders/my-orders
  * Hỗ trợ tra cứu theo Token đăng nhập HOẶC theo Số điện thoại (?phone=09...)
  */
