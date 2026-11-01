@@ -206,13 +206,24 @@
               <option value="unassigned">Chưa phân công</option>
             </select>
 
-            <button
-              type="button"
-              id="btn-export-csv"
-              class="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap"
-            >
-              Xuất Báo Cáo CSV
-            </button>
+            <div class="inline-flex rounded-xl shadow-2xs">
+              <button
+                type="button"
+                id="btn-export-csv"
+                title="Xuất bảng tính Excel chuẩn (.xlsx) với các cột phân chia rõ ràng"
+                class="py-2 px-3.5 rounded-l-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap"
+              >
+                Xuất Báo Cáo Excel (.xlsx)
+              </button>
+              <button
+                type="button"
+                id="btn-export-csv-raw"
+                title="Xuất file định dạng CSV có cấu hình phân cột tự động"
+                class="py-2 px-2.5 rounded-r-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold border-l border-emerald-500 transition-all whitespace-nowrap"
+              >
+                CSV
+              </button>
+            </div>
           </div>
         </div>
 
@@ -578,6 +589,7 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/xlsx.full.min.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

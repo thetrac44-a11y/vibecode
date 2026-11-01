@@ -264,54 +264,193 @@ app.get('/api/orders', authenticateToken, requireRole(['admin', 'staff']), async
 });
 
 app.patch('/api/orders/:id', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
-  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
-  // 1. Tìm đơn hàng qua await db.getOrderById(req.params.id)
-  // 2. Cho phép Admin phân công nhân sự phụ trách (assignedTo)
-  // 3. Khi duyệt trạng thái status === 'completed', đổi paymentStatus = 'paid' và sinh thông số IP Hosting + DNS
-  // 4. Ghi thêm vết lịch sử vào mảng order.timeline và lưu qua await db.updateOrder(order)
-  return res.status(400).json({
-    ok: false,
-    error: '[TODO - Nhiệm vụ 3]: Hãy hoàn thiện API duyệt đơn & cấp IP tại PATCH /api/orders/:id trong server.js'
-  });
+  try {
+    const orderId = req.params.id;
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
+    }
+
+    const { status, assignedTo, notes } = req.body || {};
+
+    // 1. Phân công nhân sự phụ trách: chỉ Admin mới có quyền
+    if (assignedTo !== undefined) {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          ok: false,
+          error: 'Chỉ Admin mới có quyền phân công nhân sự phụ trách đơn hàng.'
+        });
+      }
+      const cleanAssignedTo = String(assignedTo || '').trim();
+      let assignedToName = 'Chưa phân công';
+      if (cleanAssignedTo) {
+        const allUsers = await db.getAllUsers();
+        const found = allUsers.find((u) => u.id === cleanAssignedTo);
+        if (found) assignedToName = found.fullName || found.username;
+      }
+      const prevAssigned = order.assignedTo;
+      order.assignedTo = cleanAssignedTo || null;
+      order.assignedToName = assignedToName;
+
+      if (prevAssigned !== order.assignedTo) {
+        if (!Array.isArray(order.timeline)) order.timeline = [];
+        order.timeline.push({
+          time: new Date().toISOString(),
+          action: `Phân công phụ trách cho ${assignedToName}`,
+          by: req.user.fullName || req.user.username
+        });
+      }
+    }
+
+    // 2. Ghi chú xử lý nội bộ
+    if (notes !== undefined) {
+      order.notes = String(notes || '').trim();
+    }
+
+    // 3. Cập nhật trạng thái đơn hàng & Duyệt thanh toán
+    if (status && status !== order.status) {
+      order.status = status;
+      if (!Array.isArray(order.timeline)) order.timeline = [];
+
+      if (status === 'completed') {
+        order.paymentStatus = 'paid';
+        if (!order.serviceDetails || !order.serviceDetails.hostingIp) {
+          const randomOctet = Math.floor(Math.random() * 200) + 20;
+          order.serviceDetails = {
+            hostingIp: `103.221.220.${randomOctet}`,
+            nameServers: ['ns1.hostingadvisor.vn', 'ns2.hostingadvisor.vn'],
+            controlPanelUrl: 'https://cp.hostingadvisor.vn:2083',
+            activatedAt: new Date().toISOString()
+          };
+        }
+        order.timeline.push({
+          time: new Date().toISOString(),
+          action: `Đã xác nhận nhận đủ tiền VietQR & Kích hoạt dịch vụ (IP: ${order.serviceDetails.hostingIp})`,
+          by: req.user.fullName || req.user.username
+        });
+      } else {
+        const statusMap = {
+          paid_processing: 'Chờ duyệt tiền (Khách đã CK)',
+          pending_payment: 'Chờ khách thanh toán',
+          cancelled: 'Đã hủy đơn'
+        };
+        const statusLabel = statusMap[status] || status;
+        order.timeline.push({
+          time: new Date().toISOString(),
+          action: `Cập nhật trạng thái đơn thành "${statusLabel}"`,
+          by: req.user.fullName || req.user.username
+        });
+      }
+    }
+
+    const updated = await db.updateOrder(order);
+    return res.json({ ok: true, order: updated });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi cập nhật đơn hàng: ' + err.message });
+  }
 });
 
 app.delete('/api/orders/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
-  const removed = await db.deleteOrderById(req.params.id);
-  if (!removed) return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
-  return res.json({ ok: true, deletedOrder: removed });
+  try {
+    const removed = await db.deleteOrderById(req.params.id);
+    if (!removed) return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
+    return res.json({ ok: true, deletedOrder: removed });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi xóa đơn hàng: ' + err.message });
+  }
 });
 
 app.post('/api/advice/sales-script', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
-  // TODO [ADMIN PORTAL - THÀNH VIÊN 2]:
-  // Lấy thông tin đơn hàng theo orderId, tạo Prompt gửi Gemini AI để sinh Kịch bản gọi điện Telesale 3 bước
-  // (Bước 1: Chào hỏi & Xác nhận đơn -> Bước 2: Tư vấn kỹ thuật & Thanh toán -> Bước 3: Up-sell Backup/Tên miền)
-  return res.json({
-    ok: true,
-    source: 'todo-skeleton',
-    script: '[TODO - Nhiệm vụ 3]: Hãy hoàn thiện logic gọi Gemini AI soạn kịch bản Telesale 3 bước tại POST /api/advice/sales-script.'
-  });
+  try {
+    const { orderId } = req.body || {};
+    if (!orderId) {
+      return res.status(400).json({ ok: false, error: 'Thiếu mã đơn hàng.' });
+    }
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy đơn hàng.' });
+    }
+
+    const fallbackScript = `Kịch bản Telesale tư vấn đơn hàng ${order.id}:
+
+Bước 1 (Chào hỏi & Xác nhận đơn hàng):
+Dạ em chào anh/chị ${order.customerName}, em là nhân viên chăm sóc khách hàng tại HostingAdvisor. Em gọi điện để xác nhận đơn hàng ${order.id} đăng ký gói ${order.planName} (${order.billingCycleMonths} tháng) mà anh/chị vừa tạo trên hệ thống.
+
+Bước 2 (Tư vấn kỹ thuật & Hướng dẫn thanh toán VietQR):
+Đơn hàng của anh/chị có tổng thanh toán là ${Number(order.totalAmount).toLocaleString('vi-VN')}đ. Anh/chị có thể quét mã VietQR tự động trên hệ thống để được xác nhận tức thì và cấp phát IP Hosting ${order.serviceDetails?.hostingIp ? '(' + order.serviceDetails.hostingIp + ')' : '103.221.220.xxx'}. Tên miền ${order.domainName || 'của anh/chị'} sẽ được cấu hình NameServers hoàn toàn miễn phí.
+
+Bước 3 (Đề xuất Up-sell bảo vệ & sao lưu):
+Hiện tại bên em đang có ưu đãi nếu anh/chị nâng cấp chu kỳ thanh toán dài hạn từ 24 đến 36 tháng sẽ được tặng gói Sao lưu hàng ngày Daily Backup Pro và tặng thêm tên miền thương hiệu miễn phí. Em xin phép hỗ trợ anh/chị kích hoạt trực tiếp ngay ạ!`;
+
+    const prompt = `Bạn là Giám đốc Kinh doanh Hạ tầng Hosting & Tên miền. Hãy soạn kịch bản gọi điện Telesale ngắn gọn 3 bước cho nhân viên tư vấn:
+- Tên khách hàng: ${order.customerName} (SĐT: ${order.phone})
+- Mã đơn: ${order.id} | Trạng thái: ${order.status} (${order.paymentStatus})
+- Gói đăng ký: ${order.planName} (${order.billingCycleMonths} tháng)
+- Tên miền: ${order.domainName || 'Chưa kèm tên miền'}
+- Tổng thanh toán: ${Number(order.totalAmount).toLocaleString('vi-VN')}đ
+
+Yêu cầu trình bày đúng 3 bước rõ ràng, lịch sự, bằng tiếng Việt (tuyệt đối không dùng icon hoặc emoji):
+Bước 1 (Chào hỏi & Xác nhận đơn hàng): ...
+Bước 2 (Tư vấn kỹ thuật & Hướng dẫn thanh toán VietQR hoặc bàn giao IP): ...
+Bước 3 (Đề xuất Up-sell mua thêm Daily Backup hoặc tên miền bảo vệ thương hiệu): ...`;
+
+    try {
+      const aiText = await callGeminiText(prompt);
+      if (aiText) {
+        return res.json({ ok: true, source: 'gemini-2.5-flash', script: aiText });
+      }
+    } catch (aiErr) {
+      console.warn('[Gemini AI Telesale Fallback]:', aiErr.message);
+    }
+
+    return res.json({ ok: true, source: 'fallback-template', script: fallbackScript });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi soạn kịch bản: ' + err.message });
+  }
 });
 
 // Các API Quản trị Hệ thống dành cho Admin (Nhân sự, Coupon, Ngân hàng VietQR)
 app.post('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
-  const { username, password, fullName, phone, email, role } = req.body || {};
-  if (!username || !password || !fullName) return res.status(400).json({ ok: false, error: 'Thiếu thông tin nhân sự.' });
-  const newStaff = await db.createUser({
-    id: `USR-${Date.now().toString().slice(-6)}`,
-    username: String(username).trim().toLowerCase(),
-    password: hashPassword(String(password)),
-    fullName: String(fullName).trim(),
-    phone: String(phone || '').trim(),
-    email: String(email || '').trim(),
-    role: role === 'admin' ? 'admin' : 'staff',
-    createdAt: new Date().toISOString()
-  });
-  return res.status(201).json({ ok: true, user: sanitizeUser(newStaff) });
+  try {
+    const { username, password, fullName, phone, email, role } = req.body || {};
+    if (!username || !password || !fullName) {
+      return res.status(400).json({ ok: false, error: 'Vui lòng điền đầy đủ Tên đăng nhập, Mật khẩu và Họ tên.' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ ok: false, error: 'Mật khẩu phải có tối thiểu 6 ký tự.' });
+    }
+    const cleanUsername = String(username).trim().toLowerCase();
+    const existing = await db.getUserByUsername(cleanUsername);
+    if (existing) {
+      return res.status(409).json({ ok: false, error: 'Tên đăng nhập này đã tồn tại trên hệ thống.' });
+    }
+    const newStaff = await db.createUser({
+      id: `USR-${Date.now().toString().slice(-6)}`,
+      username: cleanUsername,
+      password: hashPassword(String(password)),
+      fullName: String(fullName).trim(),
+      phone: String(phone || '').trim(),
+      email: String(email || '').trim(),
+      role: role === 'admin' ? 'admin' : 'staff',
+      createdAt: new Date().toISOString()
+    });
+    return res.status(201).json({ ok: true, user: sanitizeUser(newStaff) });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi tạo nhân sự: ' + err.message });
+  }
 });
 
 app.delete('/api/admin/users/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
-  const removed = await db.deleteUserById(req.params.id);
-  return res.json({ ok: true, deletedUser: sanitizeUser(removed) });
+  try {
+    if (req.user.id === req.params.id) {
+      return res.status(400).json({ ok: false, error: 'Không thể tự xóa tài khoản của chính mình.' });
+    }
+    const removed = await db.deleteUserById(req.params.id);
+    if (!removed) return res.status(404).json({ ok: false, error: 'Không tìm thấy tài khoản nhân sự.' });
+    return res.json({ ok: true, deletedUser: sanitizeUser(removed) });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi xóa nhân sự: ' + err.message });
+  }
 });
 
 app.get('/api/admin/coupons', authenticateToken, requireRole(['admin']), async (req, res) => {

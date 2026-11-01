@@ -407,17 +407,27 @@ function initAuthModal() {
   const registerForm = document.getElementById('register-form');
   const tabLogin = document.getElementById('tab-auth-login');
   const tabReg = document.getElementById('tab-auth-register');
+  const modalTitle = document.getElementById('auth-modal-title');
 
   openBtn?.addEventListener('click', () => modal?.classList.remove('hidden'));
   closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
+
   tabLogin?.addEventListener('click', () => {
     loginForm?.classList.remove('hidden');
     registerForm?.classList.add('hidden');
+    if (modalTitle) modalTitle.textContent = 'Đăng Nhập Khách Hàng';
+    tabLogin.className = 'py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-brand-700 shadow-2xs';
+    if (tabReg) tabReg.className = 'py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900';
   });
+
   tabReg?.addEventListener('click', () => {
     loginForm?.classList.add('hidden');
     registerForm?.classList.remove('hidden');
+    if (modalTitle) modalTitle.textContent = 'Đăng Ký Tài Khoản';
+    tabReg.className = 'py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-brand-700 shadow-2xs';
+    if (tabLogin) tabLogin.className = 'py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900';
   });
+
   logoutBtn?.addEventListener('click', () => {
     currentAuthToken = '';
     currentAuthUser = null;
@@ -428,20 +438,98 @@ function initAuthModal() {
 
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const loginError = document.getElementById('login-error');
+    if (loginError) {
+      loginError.classList.add('hidden');
+      loginError.textContent = '';
+    }
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      currentAuthToken = data.token;
-      currentAuthUser = data.user;
-      localStorage.setItem('ha_token', currentAuthToken);
-      updateNavbarAuthUI();
-      modal?.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        currentAuthToken = data.token;
+        currentAuthUser = data.user;
+        localStorage.setItem('ha_token', currentAuthToken);
+        updateNavbarAuthUI();
+        modal?.classList.add('hidden');
+        loginForm.reset();
+      } else {
+        if (loginError) {
+          loginError.textContent = data.error || 'Đăng nhập không thành công.';
+          loginError.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      if (loginError) {
+        loginError.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
+        loginError.classList.remove('hidden');
+      }
+    }
+  });
+
+  registerForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const regError = document.getElementById('register-error');
+    if (regError) {
+      regError.classList.add('hidden');
+      regError.textContent = '';
+    }
+
+    const fullName = document.getElementById('reg-fullname')?.value.trim();
+    const username = document.getElementById('reg-username')?.value.trim();
+    const phone = document.getElementById('reg-phone')?.value.trim();
+    const email = document.getElementById('reg-email')?.value.trim();
+    const password = document.getElementById('reg-password')?.value;
+
+    if (!fullName || !username || !phone || !password) {
+      if (regError) {
+        regError.textContent = 'Vui lòng điền đầy đủ các thông tin bắt buộc (*).';
+        regError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (password.length < 6) {
+      if (regError) {
+        regError.textContent = 'Mật khẩu phải có tối thiểu 6 ký tự.';
+        regError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, username, phone, email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        currentAuthToken = data.token;
+        currentAuthUser = data.user;
+        localStorage.setItem('ha_token', currentAuthToken);
+        updateNavbarAuthUI();
+        modal?.classList.add('hidden');
+        registerForm.reset();
+        alert('Chúc mừng ' + (data.user?.fullName || 'bạn') + '! Bạn đã đăng ký tài khoản thành công.');
+      } else {
+        if (regError) {
+          regError.textContent = data.error || 'Đăng ký không thành công.';
+          regError.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      if (regError) {
+        regError.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
+        regError.classList.remove('hidden');
+      }
     }
   });
 }
