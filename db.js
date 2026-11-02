@@ -566,13 +566,45 @@ async function updateUser(userObj) {
       full_name: userObj.fullName,
       phone: userObj.phone || '',
       email: userObj.email || '',
-      password: userObj.password
+      password_hash: userObj.password
     })
     .eq('id', userObj.id)
     .select('*')
     .single();
   if (error) throw new Error(error.message);
   return mapUserFromPg(data);
+}
+
+async function updatePlan(planId, { pricePerMonth, freeDomain }) {
+  await ensureConnected();
+  const local = readLocalDb();
+  const idx = (local.plans || []).findIndex((p) => p.id === planId);
+  if (idx !== -1) {
+    if (pricePerMonth !== undefined) {
+      local.plans[idx].pricePerMonth = Number(pricePerMonth);
+      local.plans[idx].priceMonthly = Number(pricePerMonth);
+    }
+    if (freeDomain !== undefined) {
+      local.plans[idx].freeDomain = Boolean(freeDomain);
+    }
+    writeLocalDb(local);
+  }
+
+  if (isSupabaseActive) {
+    const updatePayload = {};
+    if (pricePerMonth !== undefined) updatePayload.price_monthly = Number(pricePerMonth);
+    if (freeDomain !== undefined) updatePayload.ssl_free = Boolean(freeDomain);
+    const { data, error } = await supabase
+      .from('plans')
+      .update(updatePayload)
+      .eq('id', planId)
+      .select('*')
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data) return mapPlanFromPg(data);
+  }
+
+  return idx !== -1 ? local.plans[idx] : null;
 }
 
 async function deleteUserById(id) {
@@ -999,6 +1031,7 @@ module.exports = {
   getUserById,
   createUser,
   updateUser,
+  updatePlan,
   deleteUserById,
   getCoupons,
   upsertCoupon,

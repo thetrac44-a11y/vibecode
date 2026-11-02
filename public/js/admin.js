@@ -13,6 +13,7 @@ let allOrders = [];
 let allLeads = [];
 let staffUsers = [];
 let allCoupons = [];
+let allPlans = [];
 let allReviews = [];
 let bankSettings = {
   bankId: 'MB',
@@ -57,6 +58,8 @@ function syncAdminScreenUI() {
   const loginScreen = document.getElementById('admin-login-screen');
   const dashboardScreen = document.getElementById('admin-dashboard-screen');
   const systemPanel = document.getElementById('admin-system-panel');
+  const systemTabBtn = document.getElementById('tab-btn-system');
+  const systemTabPanel = document.getElementById('tab-panel-system');
   const userBar = document.getElementById('admin-user-bar');
   const userNameEl = document.getElementById('admin-user-name');
   const roleBadgeEl = document.getElementById('admin-role-badge');
@@ -69,8 +72,11 @@ function syncAdminScreenUI() {
 
     if (adminUser.role === 'admin') {
       systemPanel?.classList.remove('hidden');
+      systemTabBtn?.classList.remove('hidden');
     } else {
       systemPanel?.classList.add('hidden');
+      systemTabBtn?.classList.add('hidden');
+      systemTabPanel?.classList.add('hidden');
     }
 
     if (userNameEl) userNameEl.textContent = adminUser.fullName;
@@ -171,8 +177,14 @@ async function loadStaffAndOrders() {
       renderOrdersTable();
     }
 
+    renderStaffManagementList();
+
     if (catalogRes && catalogRes.ok) {
       const cData = await catalogRes.json();
+      if (Array.isArray(cData.plans)) {
+        allPlans = cData.plans;
+        renderPlansManagementList();
+      }
       if (cData.dbStatus) {
         const dbBadge = document.getElementById('db-engine-badge');
         if (dbBadge) {
@@ -210,35 +222,181 @@ async function loadStaffAndOrders() {
 
 function renderStaffManagementList() {
   const container = document.getElementById('staff-list-container');
+  const leaderboardTbody = document.getElementById('admin-staff-leaderboard-tbody');
+
+  if (container) {
+    if (staffUsers.length === 0) {
+      container.innerHTML = '<div class="text-slate-400">Chưa có nhân sự nào.</div>';
+    } else {
+      container.innerHTML = staffUsers
+        .map((u) => {
+          const isSelf = adminUser && u.id === adminUser.id;
+          return `
+            <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div>
+                <div class="font-bold text-slate-900">${escapeHtml(u.fullName)} <span class="text-brand-700 font-mono">(@${escapeHtml(u.username)})</span></div>
+                <div class="text-slate-500">Quyền: <strong>${escapeHtml(u.role.toUpperCase())}</strong> ${u.phone ? `— ${escapeHtml(u.phone)}` : ''}</div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  data-reset-staff-id="${escapeHtml(u.id)}"
+                  data-reset-staff-username="${escapeHtml(u.username)}"
+                  class="btn-reset-staff-pass py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold transition-colors"
+                >
+                  Đổi MK
+                </button>
+                ${
+                  !isSelf
+                    ? `
+                      <button
+                        type="button"
+                        data-delete-staff-id="${escapeHtml(u.id)}"
+                        data-delete-staff-username="${escapeHtml(u.username)}"
+                        class="btn-delete-staff py-1 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    `
+                    : '<span class="text-slate-400 font-semibold">Đang dùng</span>'
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  if (leaderboardTbody) {
+    if (staffUsers.length === 0) {
+      leaderboardTbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Chưa có dữ liệu nhân sự.</td></tr>';
+      return;
+    }
+
+    const enrichedStaff = staffUsers
+      .map((u) => {
+        const assignedOrders = allOrders.filter((o) => o.assignedTo === u.id);
+        const completedOrders = assignedOrders.filter((o) => o.status === 'completed' || o.paymentStatus === 'paid');
+        const revenue = completedOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+        const commission = Math.round(revenue * 0.05);
+        const assignedLeads = allLeads.filter((l) => l.assigned_to === u.id);
+        const convertedLeads = assignedLeads.filter((l) => l.status === 'converted');
+        return {
+          ...u,
+          assignedOrdersCount: assignedOrders.length,
+          completedOrdersCount: completedOrders.length,
+          revenue,
+          commission,
+          assignedLeadsCount: assignedLeads.length,
+          convertedLeadsCount: convertedLeads.length
+        };
+      })
+      .sort((a, b) => b.revenue - a.revenue || b.completedOrdersCount - a.completedOrdersCount);
+
+    leaderboardTbody.innerHTML = enrichedStaff
+      .map((u) => {
+        const isSelf = adminUser && u.id === adminUser.id;
+        const convRate = u.assignedLeadsCount > 0 ? Math.round((u.convertedLeadsCount / u.assignedLeadsCount) * 100) : 0;
+        return `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="p-3">
+              <div class="font-bold text-slate-900">${escapeHtml(u.fullName)} <span class="text-brand-700 font-mono text-xs">(@${escapeHtml(u.username)})</span></div>
+              <div class="text-xs text-slate-500">${escapeHtml(u.phone || 'Chưa cập nhật SĐT')}</div>
+            </td>
+            <td class="p-3">
+              <span class="inline-block text-xs font-bold uppercase px-2.5 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-brand-50 text-brand-700 border border-brand-200'}">
+                ${escapeHtml(u.role)}
+              </span>
+            </td>
+            <td class="p-3 font-semibold text-slate-800">
+              ${u.completedOrdersCount} / ${u.assignedOrdersCount} đơn
+            </td>
+            <td class="p-3 font-extrabold text-emerald-700">
+              ${formatVND(u.revenue)}
+            </td>
+            <td class="p-3 font-bold text-amber-700">
+              ${formatVND(u.commission)}
+            </td>
+            <td class="p-3 text-xs font-semibold text-slate-700">
+              ${convRate}% (${u.convertedLeadsCount}/${u.assignedLeadsCount} Lead)
+            </td>
+            <td class="p-3 text-right space-x-1.5 whitespace-nowrap">
+              <button
+                type="button"
+                data-reset-staff-id="${escapeHtml(u.id)}"
+                data-reset-staff-username="${escapeHtml(u.username)}"
+                class="btn-reset-staff-pass py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition-colors"
+              >
+                Đổi MK
+              </button>
+              ${
+                !isSelf
+                  ? `
+                    <button
+                      type="button"
+                      data-delete-staff-id="${escapeHtml(u.id)}"
+                      data-delete-staff-username="${escapeHtml(u.username)}"
+                      class="btn-delete-staff py-1 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-colors"
+                    >
+                      Xóa
+                    </button>
+                  `
+                  : '<span class="text-xs text-slate-400 font-semibold">Bạn</span>'
+              }
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+  }
+}
+
+function renderPlansManagementList() {
+  const container = document.getElementById('admin-plans-list');
   if (!container) return;
 
-  if (staffUsers.length === 0) {
-    container.innerHTML = '<div class="text-slate-400">Chưa có nhân sự nào.</div>';
+  if (!Array.isArray(allPlans) || allPlans.length === 0) {
+    container.innerHTML = '<div class="sm:col-span-2 lg:col-span-4 text-slate-400">Đang tải danh sách gói Hosting...</div>';
     return;
   }
 
-  container.innerHTML = staffUsers
-    .map((u) => {
-      const isSelf = adminUser && u.id === adminUser.id;
+  container.innerHTML = allPlans
+    .map((p) => {
+      const priceVal = Number(p.pricePerMonth ?? p.priceMonthly ?? 0);
       return `
-        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 flex flex-col justify-between">
           <div>
-            <div class="font-bold text-slate-900">${escapeHtml(u.fullName)} <span class="text-brand-700 font-mono">(@${escapeHtml(u.username)})</span></div>
-            <div class="text-slate-500">Quyền: <strong>${escapeHtml(u.role.toUpperCase())}</strong> ${u.phone ? `— ${escapeHtml(u.phone)}` : ''}</div>
+            <div class="font-bold text-slate-900 text-sm">Gói ${escapeHtml(p.name)}</div>
+            <div class="text-slate-500 text-xs mt-0.5">${escapeHtml(p.storage || '')} • ${escapeHtml(p.bandwidth || '')}</div>
           </div>
-          ${
-            !isSelf
-              ? `
-                <button
-                  type="button"
-                  data-delete-staff-id="${escapeHtml(u.id)}"
-                  class="btn-delete-staff py-1 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold transition-colors"
-                >
-                  Xóa
-                </button>
-              `
-              : '<span class="text-slate-400 font-semibold">Đang dùng</span>'
-          }
+          <div class="space-y-2 pt-2 border-t border-slate-200">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Đơn giá tháng (VNĐ):</label>
+              <input
+                type="number"
+                data-plan-price-input="${escapeHtml(p.id)}"
+                value="${priceVal}"
+                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-mono font-bold text-slate-900 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <label class="flex items-center gap-2 cursor-pointer select-none text-xs font-medium text-slate-700">
+              <input
+                type="checkbox"
+                data-plan-domain-checkbox="${escapeHtml(p.id)}"
+                ${p.freeDomain ? 'checked' : ''}
+                class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span>Tặng miễn phí tên miền năm đầu</span>
+            </label>
+            <button
+              type="button"
+              data-save-plan-id="${escapeHtml(p.id)}"
+              class="btn-save-plan w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+            >
+              Lưu Giá Gói ${escapeHtml(p.name)}
+            </button>
+          </div>
         </div>
       `;
     })
@@ -879,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (delBtn) {
       const id = delBtn.getAttribute('data-delete-order-id');
       if (!id) return;
+      if (!confirm(`Xác nhận xóa vĩnh viễn đơn hàng ${id} khỏi hệ thống?`)) return;
       try {
         const res = await fetch(`/api/orders/${id}`, {
           method: 'DELETE',
@@ -1468,11 +1627,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  staffListContainer?.addEventListener('click', async (event) => {
+  async function handleStaffActionClick(event) {
+    const resetBtn = event.target.closest('.btn-reset-staff-pass');
+    if (resetBtn) {
+      const userId = resetBtn.getAttribute('data-reset-staff-id');
+      const uname = resetBtn.getAttribute('data-reset-staff-username') || 'nhân sự';
+      if (!userId) return;
+      const newPassword = prompt(`Nhập mật khẩu mới (tối thiểu 6 ký tự) cấp lại cho tài khoản @${uname}:`, '');
+      if (newPassword === null) return;
+      if (String(newPassword).trim().length < 6) {
+        alert('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ newPassword: String(newPassword).trim() })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          alert(data.error || 'Không thể cấp lại mật khẩu.');
+          return;
+        }
+        alert(data.message || `Đã cấp lại mật khẩu mới cho @${uname} thành công!`);
+      } catch (err) {
+        alert('Lỗi kết nối khi cấp lại mật khẩu: ' + err.message);
+      }
+      return;
+    }
+
     const delBtn = event.target.closest('.btn-delete-staff');
     if (!delBtn) return;
     const userId = delBtn.getAttribute('data-delete-staff-id');
+    const uname = delBtn.getAttribute('data-delete-staff-username') || userId;
     if (!userId) return;
+    if (!confirm(`Xác nhận thu hồi và xóa tài khoản nhân sự @${uname}?`)) return;
 
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -1484,6 +1677,55 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error('Lỗi xóa nhân sự:', err);
+    }
+  }
+
+  staffListContainer?.addEventListener('click', handleStaffActionClick);
+  document.getElementById('admin-staff-leaderboard-tbody')?.addEventListener('click', handleStaffActionClick);
+
+  document.getElementById('admin-plans-list')?.addEventListener('click', async (event) => {
+    const savePlanBtn = event.target.closest('.btn-save-plan');
+    if (!savePlanBtn) return;
+    const planId = savePlanBtn.getAttribute('data-save-plan-id');
+    if (!planId) return;
+
+    const priceInput = document.querySelector(`[data-plan-price-input="${planId}"]`);
+    const domainCheckbox = document.querySelector(`[data-plan-domain-checkbox="${planId}"]`);
+    const pricePerMonth = Number(priceInput?.value || 0);
+    const freeDomain = Boolean(domainCheckbox?.checked);
+    const msgEl = document.getElementById('admin-plan-save-msg');
+
+    savePlanBtn.disabled = true;
+    const oldText = savePlanBtn.textContent;
+    savePlanBtn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch(`/api/admin/plans/${encodeURIComponent(planId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ pricePerMonth, freeDomain })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Không thể cập nhật giá gói Hosting.');
+        return;
+      }
+      if (Array.isArray(data.plans)) {
+        allPlans = data.plans;
+        renderPlansManagementList();
+      }
+      if (msgEl) {
+        msgEl.textContent = `Đã cập nhật giá gói ${data.plan?.name || planId} thành công!`;
+        msgEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    } finally {
+      savePlanBtn.disabled = false;
+      savePlanBtn.textContent = oldText;
     }
   });
 
@@ -1528,6 +1770,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!delBtn) return;
     const code = delBtn.getAttribute('data-delete-coupon-code');
     if (!code) return;
+    if (!confirm(`Xác nhận xóa mã giảm giá ${code}?`)) return;
 
     try {
       const res = await fetch(`/api/admin/coupons/${encodeURIComponent(code)}`, {
@@ -1581,6 +1824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!delBtn) return;
     const revId = delBtn.getAttribute('data-delete-review-id');
     if (!revId) return;
+    if (!confirm('Xác nhận gỡ bỏ đánh giá này khỏi trang chủ?')) return;
 
     try {
       const res = await fetch(`/api/admin/reviews/${encodeURIComponent(revId)}`, {
@@ -1602,10 +1846,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tab switching logic
   function switchAdminTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
+      const shouldHide = btn.dataset.tab === 'system' && adminUser?.role !== 'admin';
+      const hiddenClass = shouldHide ? ' hidden' : '';
       if (btn.dataset.tab === tabName) {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white';
+        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white' + hiddenClass;
       } else {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100';
+        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100' + hiddenClass;
       }
     });
     document.querySelectorAll('.tab-panel').forEach(panel => {
@@ -1615,6 +1861,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activePanel) activePanel.classList.remove('hidden');
     if (tabName === 'leads') {
       loadLeads();
+    } else if (tabName === 'system') {
+      renderStaffManagementList();
+      renderPlansManagementList();
     }
   }
 

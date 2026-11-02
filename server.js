@@ -612,6 +612,21 @@ app.post('/api/admin/users', authenticateToken, requireRole(['admin']), async (r
       });
     }
 
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Mật khẩu nhân viên phải có tối thiểu 6 ký tự.'
+      });
+    }
+
+    const cleanPhone = String(phone || '').trim().replace(/\s+/g, '');
+    if (cleanPhone && !/^(0|\+84)\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Số điện thoại nhân viên không hợp lệ (cần 10 chữ số, ví dụ 0912345678).'
+      });
+    }
+
     const cleanUsername = String(username).trim().toLowerCase();
     const existing = await db.getUserByUsername(cleanUsername);
     if (existing) {
@@ -624,13 +639,71 @@ app.post('/api/admin/users', authenticateToken, requireRole(['admin']), async (r
       username: cleanUsername,
       password: hashPassword(String(password)),
       fullName: String(fullName).trim(),
-      phone: String(phone || '').trim(),
+      phone: cleanPhone,
       email: String(email || '').trim(),
       role: targetRole,
       createdAt: new Date().toISOString()
     });
 
     return res.status(201).json({ ok: true, user: sanitizeUser(newStaff) });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin cấp lại mật khẩu cho nhân viên (Staff / Admin)
+app.patch('/api/admin/users/:id/password', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { newPassword } = req.body || {};
+    if (!newPassword || String(newPassword).length < 6) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Mật khẩu mới cấp lại phải có tối thiểu 6 ký tự.'
+      });
+    }
+
+    const targetUser = await db.getUserById(targetId);
+    if (!targetUser) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy tài khoản nhân sự.' });
+    }
+
+    const updated = await db.updateUser({
+      ...targetUser,
+      password: hashPassword(String(newPassword))
+    });
+    return res.json({
+      ok: true,
+      user: sanitizeUser(updated),
+      message: `Đã cấp lại mật khẩu mới cho @${targetUser.username} thành công.`
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin cập nhật đơn giá gói Hosting & ưu đãi tặng tên miền trên Cloud SQL
+app.patch('/api/admin/plans/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const planId = req.params.id;
+    const { pricePerMonth, freeDomain } = req.body || {};
+    const numPrice = Number(pricePerMonth);
+    if (pricePerMonth !== undefined && (!Number.isFinite(numPrice) || numPrice < 10000)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Đơn giá gói Hosting phải từ 10.000đ/tháng trở lên.'
+      });
+    }
+
+    const updatedPlan = await db.updatePlan(planId, {
+      pricePerMonth: pricePerMonth !== undefined ? numPrice : undefined,
+      freeDomain: freeDomain !== undefined ? Boolean(freeDomain) : undefined
+    });
+    if (!updatedPlan) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy gói Hosting cần cập nhật.' });
+    }
+    const catalog = await db.getCatalogData();
+    return res.json({ ok: true, plan: updatedPlan, plans: catalog.plans });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
   }

@@ -158,6 +158,9 @@
         <button id="tab-btn-leads" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="leads">
           Khách Hàng Tiềm Năng (Leads)
         </button>
+        <button id="tab-btn-system" class="tab-btn hidden px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="system">
+          Quản Trị Hệ Thống &amp; Nhân Sự (Admin)
+        </button>
       </div>
 
       <!-- Tab Panel: Don Hang (default active) -->
@@ -475,9 +478,39 @@
       <!-- KHU VUC QUAN TRI HE THONG -->
 
       <!-- ==========================================
-           (Quan ly Nhan su Staff, Ma Giam Gia & Cau Hinh Ngan Hang VietQR)
+           TAB PANEL 3: QUẢN TRỊ HỆ THỐNG & NHÂN SỰ (CHỈ ADMIN)
            ========================================== -->
-      <div id="admin-system-panel" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="tab-panel-system" class="tab-panel hidden space-y-6">
+
+        <!-- 0. Bảng Xếp Hạng Hiệu Suất & Doanh Số Đội Ngũ Nhân Sự -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Thống kê hiệu suất đội ngũ</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">Bảng Xếp Hạng Doanh Số &amp; KPI Nhân Sự</h3>
+              <p class="text-xs text-slate-500">Theo dõi trực tiếp số lượng đơn hàng, doanh thu thực nhận, hoa hồng dự kiến (5%) và tỷ lệ chốt Lead của từng nhân sự.</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] border-collapse text-left text-xs sm:text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="p-3 font-semibold">Nhân sự</th>
+                  <th class="p-3 font-semibold">Vai trò</th>
+                  <th class="p-3 font-semibold">Đơn phụ trách (Đã thu / Tổng)</th>
+                  <th class="p-3 font-semibold">Doanh thu mang về</th>
+                  <th class="p-3 font-semibold">Hoa hồng (5%)</th>
+                  <th class="p-3 font-semibold">Chốt Lead tư vấn</th>
+                  <th class="p-3 font-semibold text-right">Quản lý tài khoản</th>
+                </tr>
+              </thead>
+              <tbody id="admin-staff-leaderboard-tbody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="admin-system-panel" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- 1. Quản lý Tài khoản Nhân sự (Staff / Admin) -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
@@ -658,7 +691,20 @@
           </form>
         </div>
 
-        <!-- 4. Quản lý Đánh giá Khách hàng (Reviews trên Supabase) -->
+        <!-- 4. Quản lý Bảng giá Gói Hosting & Ưu đãi Tên miền (Catalog Price Editor) -->
+        <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Quản lý Sản phẩm &amp; Giá bán</span>
+              <h3 class="text-base font-bold text-slate-900 mt-0.5">Điều Chỉnh Bảng Giá Gói Hosting &amp; Ưu Đãi Tên Miền</h3>
+              <p class="text-xs text-slate-500">Thay đổi đơn giá tháng (VNĐ/tháng) hoặc bật/tắt ưu đãi tặng tên miền miễn phí năm đầu trên trang chủ.</p>
+            </div>
+            <span id="admin-plan-save-msg" class="hidden text-xs font-semibold text-emerald-700"></span>
+          </div>
+          <div id="admin-plans-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-2"></div>
+        </div>
+
+        <!-- 5. Quản lý Đánh giá Khách hàng (Reviews trên Supabase) -->
         <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -670,6 +716,7 @@
           <div id="admin-reviews-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-2"></div>
         </div>
 
+        </div>
       </div>
 
     </section>
