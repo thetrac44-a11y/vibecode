@@ -14,6 +14,9 @@ let allLeads = [];
 let staffUsers = [];
 let allCoupons = [];
 let allPlans = [];
+let allDomains = [];
+let allAddons = [];
+let allCustomers = [];
 let allReviews = [];
 let bankSettings = {
   bankId: 'MB',
@@ -152,9 +155,10 @@ async function loadStaffAndOrders() {
 
     if (adminUser?.role === 'admin') {
       requests.push(fetch('/api/admin/coupons', { headers: { Authorization: `Bearer ${adminToken}` } }));
+      requests.push(fetch('/api/admin/customers', { headers: { Authorization: `Bearer ${adminToken}` } }));
     }
 
-    const [staffRes, ordersRes, catalogRes, leadsRes, couponsRes] = await Promise.all(requests);
+    const [staffRes, ordersRes, catalogRes, leadsRes, couponsRes, customersRes] = await Promise.all(requests);
 
     if (leadsRes && leadsRes.ok) {
       const lData = await leadsRes.json();
@@ -185,6 +189,14 @@ async function loadStaffAndOrders() {
         allPlans = cData.plans;
         renderPlansManagementList();
       }
+      if (Array.isArray(cData.domain_pricing)) {
+        allDomains = cData.domain_pricing;
+        renderDomainsManagementList();
+      }
+      if (Array.isArray(cData.addons)) {
+        allAddons = cData.addons;
+        renderAddonsManagementList();
+      }
       if (cData.dbStatus) {
         const dbBadge = document.getElementById('db-engine-badge');
         if (dbBadge) {
@@ -214,6 +226,17 @@ async function loadStaffAndOrders() {
       const cpData = await couponsRes.json();
       allCoupons = Array.isArray(cpData.coupons) ? cpData.coupons : [];
       renderCouponsManagementList();
+    }
+
+    if (customersRes && customersRes.ok) {
+      const custData = await customersRes.json();
+      allCustomers = Array.isArray(custData.customers) ? custData.customers : [];
+      renderCustomersManagementList();
+    }
+
+    if (adminUser?.role === 'admin') {
+      renderRevenueAnalytics();
+      renderCustomersManagementList();
     }
   } catch (err) {
     console.error('Lỗi tải dữ liệu OMS:', err);
@@ -395,6 +418,269 @@ function renderPlansManagementList() {
               class="btn-save-plan w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
             >
               Lưu Giá Gói ${escapeHtml(p.name)}
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderRevenueAnalytics() {
+  const byPlanEl = document.getElementById('analytics-by-plan');
+  const byCycleEl = document.getElementById('analytics-by-cycle');
+  const bySourceEl = document.getElementById('analytics-by-source');
+  if (!byPlanEl || !byCycleEl || !bySourceEl) return;
+
+  const paidOrders = allOrders.filter((o) => o.status === 'completed' || o.paymentStatus === 'paid');
+  const totalRev = paidOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+  // 1. Doanh thu theo Gói Hosting
+  const planMap = {};
+  paidOrders.forEach((o) => {
+    const key = o.planName || o.planId || 'Khác';
+    if (!planMap[key]) planMap[key] = { count: 0, rev: 0 };
+    planMap[key].count += 1;
+    planMap[key].rev += Number(o.totalAmount) || 0;
+  });
+  const planEntries = Object.entries(planMap).sort((a, b) => b[1].rev - a[1].rev);
+  if (planEntries.length === 0) {
+    byPlanEl.innerHTML = '<div class="text-slate-400">Chưa có đơn hàng đã thanh toán.</div>';
+  } else {
+    byPlanEl.innerHTML = planEntries
+      .map(([name, info]) => {
+        const pct = totalRev > 0 ? Math.round((info.rev / totalRev) * 100) : 0;
+        return `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-800">Gói ${escapeHtml(name)} (${info.count} đơn)</span>
+              <span class="font-extrabold text-brand-700">${formatVND(info.rev)} (${pct}%)</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div class="h-full bg-brand-600 rounded-full" style="width: ${Math.max(pct, 4)}%"></div>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  // 2. Doanh thu theo Chu kỳ thanh toán
+  const cycleMap = {
+    12: { label: 'Chu kỳ 12 Tháng (1 năm)', count: 0, rev: 0 },
+    24: { label: 'Chu kỳ 24 Tháng (2 năm)', count: 0, rev: 0 },
+    36: { label: 'Chu kỳ 36 Tháng (3 năm)', count: 0, rev: 0 }
+  };
+  paidOrders.forEach((o) => {
+    const m = Number(o.cycleMonths) || 12;
+    if (!cycleMap[m]) {
+      cycleMap[m] = { label: `Chu kỳ ${m} Tháng`, count: 0, rev: 0 };
+    }
+    cycleMap[m].count += 1;
+    cycleMap[m].rev += Number(o.totalAmount) || 0;
+  });
+  byCycleEl.innerHTML = Object.values(cycleMap)
+    .map((info) => {
+      const pct = totalRev > 0 ? Math.round((info.rev / totalRev) * 100) : 0;
+      return `
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-800">${escapeHtml(info.label)} (${info.count} đơn)</span>
+            <span class="font-extrabold text-emerald-700">${formatVND(info.rev)} (${pct}%)</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full bg-emerald-600 rounded-full" style="width: ${info.rev > 0 ? Math.max(pct, 4) : 0}%"></div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  // 3. Tỷ trọng nguồn thu (Hosting / Tên miền / Dịch vụ bổ trợ)
+  let hostingSum = 0;
+  let domainSum = 0;
+  let addonsSum = 0;
+  paidOrders.forEach((o) => {
+    const dFee = Number(o.domainFee) || 0;
+    const aFee = Number(o.addonsTotal) || 0;
+    const hFee = Number(o.hostingSubtotal) || Math.max(0, (Number(o.totalAmount) || 0) - dFee - aFee);
+    hostingSum += hFee;
+    domainSum += dFee;
+    addonsSum += aFee;
+  });
+  const grossSum = hostingSum + domainSum + addonsSum;
+  const sources = [
+    { label: 'Dịch vụ Web Hosting cốt lõi', val: hostingSum, barClass: 'bg-brand-600', textClass: 'text-brand-700' },
+    { label: 'Đăng ký Tên miền (.vn, .com...)', val: domainSum, barClass: 'bg-amber-500', textClass: 'text-amber-700' },
+    { label: 'Dịch vụ bổ trợ (Add-ons)', val: addonsSum, barClass: 'bg-emerald-600', textClass: 'text-emerald-700' }
+  ];
+  bySourceEl.innerHTML = sources
+    .map((s) => {
+      const pct = grossSum > 0 ? Math.round((s.val / grossSum) * 100) : 0;
+      return `
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-800">${escapeHtml(s.label)}</span>
+            <span class="font-extrabold ${s.textClass}">${formatVND(s.val)} (${pct}%)</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full ${s.barClass} rounded-full" style="width: ${s.val > 0 ? Math.max(pct, 4) : 0}%"></div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderCustomersManagementList() {
+  const tbody = document.getElementById('admin-customers-tbody');
+  const countBadge = document.getElementById('admin-customers-count-badge');
+  if (!tbody) return;
+
+  if (countBadge) {
+    countBadge.textContent = `${allCustomers.length} khách hàng`;
+  }
+
+  if (!Array.isArray(allCustomers) || allCustomers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Chưa có tài khoản khách hàng thành viên nào.</td></tr>';
+    return;
+  }
+
+  const enrichedCustomers = allCustomers
+    .map((c) => {
+      const custOrders = allOrders.filter(
+        (o) =>
+          (c.id && o.userId === c.id) ||
+          (c.email && o.customerEmail && o.customerEmail.toLowerCase() === c.email.toLowerCase()) ||
+          (c.phone && o.customerPhone && o.customerPhone === c.phone)
+      );
+      const paidOrders = custOrders.filter((o) => o.status === 'completed' || o.paymentStatus === 'paid');
+      const ltv = paidOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+      return {
+        ...c,
+        totalOrdersCount: custOrders.length,
+        paidOrdersCount: paidOrders.length,
+        ltv
+      };
+    })
+    .sort((a, b) => b.ltv - a.ltv || b.totalOrdersCount - a.totalOrdersCount);
+
+  tbody.innerHTML = enrichedCustomers
+    .map((c) => {
+      return `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="p-3">
+            <div class="font-bold text-slate-900">${escapeHtml(c.fullName || 'Khách hàng')}</div>
+            <div class="text-xs font-mono text-brand-700">@${escapeHtml(c.username)}</div>
+          </td>
+          <td class="p-3 font-mono text-xs text-slate-800">
+            ${escapeHtml(c.phone || 'Chưa cập nhật')}
+          </td>
+          <td class="p-3 text-xs text-slate-700">
+            ${escapeHtml(c.email || 'Chưa cập nhật')}
+          </td>
+          <td class="p-3 font-semibold text-slate-800">
+            ${c.paidOrdersCount} kích hoạt / ${c.totalOrdersCount} đơn
+          </td>
+          <td class="p-3 font-extrabold text-emerald-700">
+            ${formatVND(c.ltv)}
+          </td>
+          <td class="p-3 text-right space-x-1.5 whitespace-nowrap">
+            <button
+              type="button"
+              data-reset-staff-id="${escapeHtml(c.id)}"
+              data-reset-staff-username="${escapeHtml(c.username)}"
+              class="btn-reset-staff-pass py-1 px-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition-colors"
+            >
+              Đổi MK
+            </button>
+            <button
+              type="button"
+              data-delete-staff-id="${escapeHtml(c.id)}"
+              data-delete-staff-username="${escapeHtml(c.username)}"
+              class="btn-delete-staff py-1 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition-colors"
+            >
+              Xóa
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+function renderDomainsManagementList() {
+  const container = document.getElementById('admin-domains-list');
+  if (!container) return;
+
+  if (!Array.isArray(allDomains) || allDomains.length === 0) {
+    container.innerHTML = '<div class="text-slate-400">Chưa có danh mục đuôi tên miền.</div>';
+    return;
+  }
+
+  container.innerHTML = allDomains
+    .map((d) => {
+      const ext = d.extension || d.ext || '';
+      const priceVal = Number(d.price ?? d.pricePerYear ?? 0);
+      return `
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="min-w-[70px]">
+            <span class="font-mono font-extrabold text-sm text-brand-700">${escapeHtml(ext)}</span>
+            <div class="text-[11px] text-slate-500">Phí / 1 năm</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              data-domain-price-input="${escapeHtml(ext)}"
+              value="${priceVal}"
+              class="w-32 rounded-lg border border-slate-300 bg-white px-2.5 py-1 font-mono font-bold text-slate-900 focus:border-brand-600 focus:outline-none"
+            />
+            <button
+              type="button"
+              data-save-domain-ext="${escapeHtml(ext)}"
+              class="btn-save-domain py-1 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold transition-colors"
+            >
+              Lưu
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderAddonsManagementList() {
+  const container = document.getElementById('admin-addons-list');
+  if (!container) return;
+
+  if (!Array.isArray(allAddons) || allAddons.length === 0) {
+    container.innerHTML = '<div class="text-slate-400">Chưa có danh mục dịch vụ bổ trợ (Add-ons).</div>';
+    return;
+  }
+
+  container.innerHTML = allAddons
+    .map((a) => {
+      const priceVal = Number(a.price ?? 0);
+      const billingLabel = a.billingType === 'monthly' ? 'Phí / tháng' : 'Phí / năm';
+      return `
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <div class="font-bold text-slate-900">${escapeHtml(a.name || a.id)}</div>
+            <div class="text-[11px] text-slate-500">${escapeHtml(billingLabel)}</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <input
+              type="number"
+              data-addon-price-input="${escapeHtml(a.id)}"
+              value="${priceVal}"
+              class="w-32 rounded-lg border border-slate-300 bg-white px-2.5 py-1 font-mono font-bold text-slate-900 focus:border-brand-600 focus:outline-none"
+            />
+            <button
+              type="button"
+              data-save-addon-id="${escapeHtml(a.id)}"
+              class="btn-save-addon py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+            >
+              Lưu
             </button>
           </div>
         </div>
@@ -1665,7 +1951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userId = delBtn.getAttribute('data-delete-staff-id');
     const uname = delBtn.getAttribute('data-delete-staff-username') || userId;
     if (!userId) return;
-    if (!confirm(`Xác nhận thu hồi và xóa tài khoản nhân sự @${uname}?`)) return;
+    if (!confirm(`Xác nhận thu hồi và xóa tài khoản @${uname}?`)) return;
 
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -1676,12 +1962,101 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadStaffAndOrders();
       }
     } catch (err) {
-      console.error('Lỗi xóa nhân sự:', err);
+      console.error('Lỗi xóa tài khoản:', err);
     }
   }
 
   staffListContainer?.addEventListener('click', handleStaffActionClick);
   document.getElementById('admin-staff-leaderboard-tbody')?.addEventListener('click', handleStaffActionClick);
+  document.getElementById('admin-customers-tbody')?.addEventListener('click', handleStaffActionClick);
+
+  document.getElementById('admin-domains-list')?.addEventListener('click', async (event) => {
+    const saveDomainBtn = event.target.closest('.btn-save-domain');
+    if (!saveDomainBtn) return;
+    const ext = saveDomainBtn.getAttribute('data-save-domain-ext');
+    if (!ext) return;
+
+    const priceInput = document.querySelector(`[data-domain-price-input="${ext}"]`);
+    const price = Number(priceInput?.value || 0);
+    const msgEl = document.getElementById('admin-domain-save-msg');
+
+    saveDomainBtn.disabled = true;
+    const oldText = saveDomainBtn.textContent;
+    saveDomainBtn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch('/api/admin/domains', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ extension: ext, price })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Không thể cập nhật bảng giá tên miền.');
+        return;
+      }
+      if (Array.isArray(data.domain_pricing)) {
+        allDomains = data.domain_pricing;
+        renderDomainsManagementList();
+      }
+      if (msgEl) {
+        msgEl.textContent = `Đã cập nhật giá tên miền ${ext} thành công!`;
+        msgEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    } finally {
+      saveDomainBtn.disabled = false;
+      saveDomainBtn.textContent = oldText;
+    }
+  });
+
+  document.getElementById('admin-addons-list')?.addEventListener('click', async (event) => {
+    const saveAddonBtn = event.target.closest('.btn-save-addon');
+    if (!saveAddonBtn) return;
+    const addonId = saveAddonBtn.getAttribute('data-save-addon-id');
+    if (!addonId) return;
+
+    const priceInput = document.querySelector(`[data-addon-price-input="${addonId}"]`);
+    const price = Number(priceInput?.value || 0);
+    const msgEl = document.getElementById('admin-addon-save-msg');
+
+    saveAddonBtn.disabled = true;
+    const oldText = saveAddonBtn.textContent;
+    saveAddonBtn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch(`/api/admin/addons/${encodeURIComponent(addonId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ price })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Không thể cập nhật bảng giá dịch vụ bổ trợ.');
+        return;
+      }
+      if (Array.isArray(data.addons)) {
+        allAddons = data.addons;
+        renderAddonsManagementList();
+      }
+      if (msgEl) {
+        msgEl.textContent = `Đã cập nhật giá dịch vụ ${data.addon?.name || addonId} thành công!`;
+        msgEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối máy chủ: ' + err.message);
+    } finally {
+      saveAddonBtn.disabled = false;
+      saveAddonBtn.textContent = oldText;
+    }
+  });
 
   document.getElementById('admin-plans-list')?.addEventListener('click', async (event) => {
     const savePlanBtn = event.target.closest('.btn-save-plan');
@@ -1863,7 +2238,11 @@ document.addEventListener('DOMContentLoaded', () => {
       loadLeads();
     } else if (tabName === 'system') {
       renderStaffManagementList();
+      renderRevenueAnalytics();
+      renderCustomersManagementList();
       renderPlansManagementList();
+      renderDomainsManagementList();
+      renderAddonsManagementList();
     }
   }
 

@@ -607,6 +607,70 @@ async function updatePlan(planId, { pricePerMonth, freeDomain }) {
   return idx !== -1 ? local.plans[idx] : null;
 }
 
+async function updateDomainPrice(extension, { price }) {
+  await ensureConnected();
+  const cleanExt = String(extension || '').trim().toLowerCase();
+  const numPrice = Number(price);
+  const local = readLocalDb();
+  const idx = (local.domain_pricing || []).findIndex(
+    (d) => String(d.extension || d.tld || '').toLowerCase() === cleanExt
+  );
+  if (idx !== -1) {
+    local.domain_pricing[idx].price = numPrice;
+    local.domain_pricing[idx].regPrice = numPrice;
+    local.domain_pricing[idx].renewPrice = numPrice;
+    writeLocalDb(local);
+  }
+
+  if (isSupabaseActive) {
+    const { data, error } = await supabase
+      .from('domain_pricing')
+      .update({
+        reg_price: numPrice,
+        renew_price: numPrice
+      })
+      .eq('tld', cleanExt)
+      .select('*')
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data) return mapDomainFromPg(data);
+  }
+
+  return idx !== -1 ? local.domain_pricing[idx] : null;
+}
+
+async function updateAddonPrice(addonId, { price }) {
+  await ensureConnected();
+  const numPrice = Number(price);
+  const local = readLocalDb();
+  const idx = (local.addons || []).findIndex((a) => a.id === addonId);
+  let bType = 'yearly';
+  let uLabel = `${numPrice.toLocaleString('vi-VN')}đ / năm`;
+  if (idx !== -1) {
+    bType = local.addons[idx].billingType || 'yearly';
+    uLabel = `${numPrice.toLocaleString('vi-VN')}đ / ${bType === 'monthly' ? 'tháng' : 'năm'}`;
+    local.addons[idx].price = numPrice;
+    local.addons[idx].unitLabel = uLabel;
+    writeLocalDb(local);
+  }
+
+  if (isSupabaseActive) {
+    const { data, error } = await supabase
+      .from('addons')
+      .update({
+        price: numPrice,
+        billing: `${bType}|${uLabel}`
+      })
+      .eq('id', addonId)
+      .select('*')
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data) return mapAddonFromPg(data);
+  }
+
+  return idx !== -1 ? local.addons[idx] : null;
+}
+
 async function deleteUserById(id) {
   await ensureConnected();
   if (!isSupabaseActive) {
@@ -1032,6 +1096,8 @@ module.exports = {
   createUser,
   updateUser,
   updatePlan,
+  updateDomainPrice,
+  updateAddonPrice,
   deleteUserById,
   getCoupons,
   upsertCoupon,

@@ -482,7 +482,20 @@
            ========================================== -->
       <div id="tab-panel-system" class="tab-panel hidden space-y-6">
 
-        <!-- 0. Bảng Xếp Hạng Hiệu Suất & Doanh Số Đội Ngũ Nhân Sự -->
+        <!-- 0A. Báo Cáo Phân Tích Cơ Cấu Doanh Thu Theo Gói Cước & Chu Kỳ -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Báo cáo quản trị tài chính</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">Phân Tích Cơ Cấu Doanh Thu Theo Gói Cước &amp; Chu Kỳ Đăng Ký</h3>
+              <p class="text-xs text-slate-500">Thống kê tỷ trọng doanh thu thực nhận của từng gói Hosting, chu kỳ thanh toán (12/24/36 tháng) và nguồn thu dịch vụ bổ trợ.</p>
+            </div>
+          </div>
+
+          <div id="admin-revenue-analytics-box" class="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs sm:text-sm"></div>
+        </div>
+
+        <!-- 0B. Bảng Xếp Hạng Hiệu Suất & Doanh Số Đội Ngũ Nhân Sự -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -506,6 +519,33 @@
                 </tr>
               </thead>
               <tbody id="admin-staff-leaderboard-tbody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 0C. Quản Lý Danh Sách Tài Khoản Khách Hàng Thành Viên (CRM & LTV) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Quản trị người dùng</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">Danh Sách Tài Khoản Khách Hàng Thành Viên &amp; Chi Tiêu Tích Lũy (LTV)</h3>
+              <p class="text-xs text-slate-500">Theo dõi các tài khoản khách hàng đã đăng ký trên hệ thống, hỗ trợ cấp lại mật khẩu khi khách quên hoặc thu hồi tài khoản rác.</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] border-collapse text-left text-xs sm:text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                  <th class="p-3 font-semibold">Khách hàng (@username)</th>
+                  <th class="p-3 font-semibold">Số điện thoại / Email</th>
+                  <th class="p-3 font-semibold">Ngày đăng ký</th>
+                  <th class="p-3 font-semibold">Số đơn đã mua</th>
+                  <th class="p-3 font-semibold">Tổng chi tiêu (LTV)</th>
+                  <th class="p-3 font-semibold text-right">Thao tác hỗ trợ</th>
+                </tr>
+              </thead>
+              <tbody id="admin-customers-tbody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
@@ -702,6 +742,31 @@
             <span id="admin-plan-save-msg" class="hidden text-xs font-semibold text-emerald-700"></span>
           </div>
           <div id="admin-plans-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-2"></div>
+        </div>
+
+        <!-- 4B. Quản lý Bảng giá Tên miền (.vn, .com...) & Dịch vụ Bổ trợ (Add-ons) -->
+        <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Bảng giá Tên miền</span>
+                <h3 class="text-base font-bold text-slate-900 mt-0.5">Điều Chỉnh Phí Tên Miền (.vn, .com...)</h3>
+              </div>
+              <span id="admin-domain-save-msg" class="hidden text-xs font-semibold text-emerald-700"></span>
+            </div>
+            <div id="admin-domains-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs pt-1"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Dịch vụ Bổ trợ (Add-ons)</span>
+                <h3 class="text-base font-bold text-slate-900 mt-0.5">Điều Chỉnh Đơn Giá Dịch Vụ Add-ons</h3>
+              </div>
+              <span id="admin-addon-save-msg" class="hidden text-xs font-semibold text-emerald-700"></span>
+            </div>
+            <div id="admin-addons-list" class="space-y-2.5 text-xs pt-1"></div>
+          </div>
         </div>
 
         <!-- 5. Quản lý Đánh giá Khách hàng (Reviews trên Supabase) -->

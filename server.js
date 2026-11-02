@@ -709,6 +709,64 @@ app.patch('/api/admin/plans/:id', authenticateToken, requireRole(['admin']), asy
   }
 });
 
+// Admin lấy danh sách toàn bộ tài khoản Khách hàng thành viên (role = customer)
+app.get('/api/admin/customers', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const allUsers = await db.getAllUsers();
+    const customers = allUsers
+      .filter((u) => u.role === 'customer' || (!u.role && u.username !== 'admin'))
+      .map(sanitizeUser);
+    return res.json({ ok: true, customers });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin cập nhật đơn giá đăng ký/gia hạn Tên miền (.vn, .com, .net...)
+app.patch('/api/admin/domains', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { extension, price } = req.body || {};
+    const numPrice = Number(price);
+    if (!extension || !Number.isFinite(numPrice) || numPrice < 10000) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Vui lòng nhập đuôi tên miền và mức phí hợp lệ (>= 10.000đ/năm).'
+      });
+    }
+    const updatedDomain = await db.updateDomainPrice(extension, { price: numPrice });
+    if (!updatedDomain) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy đuôi tên miền cần cập nhật.' });
+    }
+    const catalog = await db.getCatalogData();
+    return res.json({ ok: true, domain: updatedDomain, domainPricing: catalog.domain_pricing });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin cập nhật đơn giá dịch vụ bổ trợ (Add-ons)
+app.patch('/api/admin/addons/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const addonId = req.params.id;
+    const { price } = req.body || {};
+    const numPrice = Number(price);
+    if (!Number.isFinite(numPrice) || numPrice < 10000) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Đơn giá dịch vụ Add-on phải từ 10.000đ trở lên.'
+      });
+    }
+    const updatedAddon = await db.updateAddonPrice(addonId, { price: numPrice });
+    if (!updatedAddon) {
+      return res.status(404).json({ ok: false, error: 'Không tìm thấy dịch vụ Add-on cần cập nhật.' });
+    }
+    const catalog = await db.getCatalogData();
+    return res.json({ ok: true, addon: updatedAddon, addons: catalog.addons });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Admin xóa tài khoản nhân sự
 app.delete('/api/admin/users/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
