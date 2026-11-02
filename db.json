@@ -16,6 +16,26 @@
       "email": "admin@hostingadvisor.vn",
       "role": "admin",
       "createdAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "usr_staff",
+      "username": "staff",
+      "password": "sha256$a1b2c3d4e5f60718$46a7dadb698cc4f6b94e8cdaf0440d21555ca8cc332eeb17f436ce858aea921f",
+      "fullName": "Chuyên Viên Kinh Doanh & Kỹ Thuật",
+      "phone": "0902000222",
+      "email": "staff@hostingadvisor.vn",
+      "role": "staff",
+      "createdAt": "2026-01-01T08:05:00.000Z"
+    },
+    {
+      "id": "usr_customer",
+      "username": "hoangyen",
+      "password": "sha256$1122334455667788$92b77624dd57cfb8c3b3deaebc1a8c7833336f4d7959e462ca89fce896e39a82",
+      "fullName": "Nguyễn Hoàng Yến",
+      "phone": "0912345678",
+      "email": "hoangyen@yenboutique.vn",
+      "role": "customer",
+      "createdAt": "2026-01-01T08:10:00.000Z"
     }
   ],
   "coupons": [
