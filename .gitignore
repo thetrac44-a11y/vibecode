@@ -5,3 +5,6 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
+*.mp4
+*.mkv
+*.mov
