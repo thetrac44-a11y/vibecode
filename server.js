@@ -1707,6 +1707,163 @@ Bước 3 (Gia tăng giá trị & Up-sell): Để bảo vệ an toàn dữ liệ
   }
 });
 
+/**
+ * POST /api/chat
+ * Chatbot Chuyên gia AI 24/7 tư vấn trực tiếp Gói Hosting, Tên miền, Ưu đãi & Kỹ thuật
+ */
+function buildSmartChatFallback(userMsg, catalog) {
+  const q = String(userMsg || '').toLowerCase();
+  const plans = Array.isArray(catalog?.plans) ? catalog.plans : [];
+  const findPlan = (id, fallbackName, fallbackPrice) => {
+    const p = plans.find((x) => x.id === id);
+    return {
+      id: p?.id || id,
+      name: p?.name || fallbackName,
+      price: Number(p?.pricePerMonth ?? p?.priceMonthly ?? fallbackPrice)
+    };
+  };
+
+  const starter = findPlan('starter', 'Starter', 39000);
+  const basic = findPlan('basic', 'Basic', 69000);
+  const business = findPlan('business', 'Business', 129000);
+  const shopPro = findPlan('shop-pro', 'Shop Pro', 249000);
+  const vps1 = findPlan('vps-1', 'VPS Growth', 399000);
+
+  if (q.includes('mã giảm') || q.includes('khuyến mãi') || q.includes('coupon') || q.includes('voucher') || q.includes('ưu đãi')) {
+    return {
+      reply: `Hiện tại HostingAdvisor đang áp dụng 2 mã giảm giá trực tiếp tại giỏ hàng: mã VIBE2026 (giảm ngay 15% tổng giá trị đơn hàng) và mã CHUSHOP (giảm trực tiếp 50.000đ). Ngoài ra, khi bạn đăng ký chu kỳ 24 tháng sẽ được chiết khấu thêm 10%, chu kỳ 36 tháng chiết khấu 20% và được tặng miễn phí 100% tên miền năm đầu khi chọn gói ${basic.name}, ${business.name} hoặc ${shopPro.name}.`,
+      suggestedPlanId: business.id,
+      suggestedPlanName: business.name
+    };
+  }
+
+  if (q.includes('tên miền') || q.includes('domain') || q.includes('.vn') || q.includes('.com')) {
+    return {
+      reply: `Tên miền .vn tạo độ tin cậy thương hiệu rất cao tại thị trường Việt Nam và được pháp luật bảo hộ, trong khi tên miền .com phù hợp mở rộng quốc tế và ngắn gọn dễ nhớ. Đặc biệt, nếu bạn đăng ký các gói ${basic.name} (${basic.price.toLocaleString('vi-VN')}đ/tháng), ${business.name} (${business.price.toLocaleString('vi-VN')}đ/tháng) hoặc ${shopPro.name} (${shopPro.price.toLocaleString('vi-VN')}đ/tháng), hệ thống sẽ tặng miễn phí 100% phí đăng ký tên miền năm đầu tiên.`,
+      suggestedPlanId: business.id,
+      suggestedPlanName: business.name
+    };
+  }
+
+  if (q.includes('bán hàng') || q.includes('shop') || q.includes('thương mại') || q.includes('woocommerce') || q.includes('quần áo') || q.includes('mỹ phẩm')) {
+    return {
+      reply: `Với website bán hàng trực tuyến cần tốc độ tải trang nhanh và chịu tải ổn định khi chạy quảng cáo, bạn nên chọn gói ${business.name} (${business.price.toLocaleString('vi-VN')}đ/tháng, 50 GB NVMe, chịu tải 30.000 lượt/tháng) hoặc gói ${shopPro.name} (${shopPro.price.toLocaleString('vi-VN')}đ/tháng, 100 GB NVMe, tối ưu WooCommerce, chịu tải 80.000 lượt/tháng). Cả 2 gói đều tặng kèm miễn phí tên miền năm đầu và chứng chỉ bảo mật SSL.`,
+      suggestedPlanId: business.id,
+      suggestedPlanName: business.name
+    };
+  }
+
+  if (q.includes('blog') || q.includes('sinh viên') || q.includes('cá nhân') || q.includes('giá rẻ') || q.includes('nhỏ')) {
+    return {
+      reply: `Với blog cá nhân, trang portfolio hoặc sinh viên thực hành học tập, gói ${starter.name} (${starter.price.toLocaleString('vi-VN')}đ/tháng, 5 GB SSD) hoặc gói ${basic.name} (${basic.price.toLocaleString('vi-VN')}đ/tháng, 20 GB SSD, tặng miễn phí tên miền năm đầu) là lựa chọn tiết kiệm nhất. Bạn vẫn được cấp đầy đủ chứng chỉ SSL miễn phí và công cụ cài đặt WordPress 1-Click.`,
+      suggestedPlanId: basic.id,
+      suggestedPlanName: basic.name
+    };
+  }
+
+  if (q.includes('vps') || q.includes('lớn') || q.includes('app') || q.includes('node') || q.includes('erp') || q.includes('crm')) {
+    return {
+      reply: `Với hệ thống Web App, phần mềm quản trị hoặc website có lưu lượng truy cập lớn trên 100.000 lượt/tháng, bạn nên chọn gói ${vps1.name} (${vps1.price.toLocaleString('vi-VN')}đ/tháng, 2 CPU, 4 GB RAM, 80 GB NVMe) để có tài nguyên độc lập và toàn quyền quản trị máy chủ.`,
+      suggestedPlanId: vps1.id,
+      suggestedPlanName: vps1.name
+    };
+  }
+
+  if (q.includes('wordpress') || q.includes('cpanel') || q.includes('kích hoạt') || q.includes('thanh toán') || q.includes('vietqr')) {
+    return {
+      reply: `Quy trình đăng ký tại HostingAdvisor hoàn toàn tự động: bạn chọn gói cước, áp mã VIBE2026 để giảm 15%, quét mã chuyển khoản VietQR và bấm xác nhận thanh toán. Ngay sau khi đơn được duyệt kích hoạt, bạn có thể mở bảng điều khiển Quản Lý Hosting (cPanel) ngay trên trang chủ để cài đặt WordPress 1-Click, kiểm tra DNS và tạo bản sao lưu dữ liệu.`,
+      suggestedPlanId: business.id,
+      suggestedPlanName: business.name
+    };
+  }
+
+  return {
+    reply: `Chào bạn, hiện tại HostingAdvisor cung cấp 6 gói dịch vụ từ cơ bản đến cao cấp: ${starter.name} (${starter.price.toLocaleString('vi-VN')}đ/tháng), ${basic.name} (${basic.price.toLocaleString('vi-VN')}đ/tháng), ${business.name} (${business.price.toLocaleString('vi-VN')}đ/tháng), ${shopPro.name} (${shopPro.price.toLocaleString('vi-VN')}đ/tháng) và hệ thống Cloud VPS. Gói ${business.name} đang được nhiều doanh nghiệp và chủ shop lựa chọn nhất nhờ ổ cứng 50 GB NVMe tốc độ cao và ưu đãi tặng miễn phí tên miền năm đầu. Bạn có thể nhập thêm mã VIBE2026 khi thanh toán để được giảm ngay 15%.`,
+    suggestedPlanId: business.id,
+    suggestedPlanName: business.name
+  };
+}
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, history = [] } = req.body || {};
+    const cleanMsg = String(message || '').trim();
+    if (!cleanMsg) {
+      return res.status(400).json({ ok: false, error: 'Vui lòng nhập câu hỏi cần tư vấn.' });
+    }
+
+    const catalog = await db.getCatalogData();
+    const plansSummary = (catalog.plans || [])
+      .map(
+        (p) =>
+          `- ${p.name} (id: ${p.id}): ${Number(p.pricePerMonth ?? p.priceMonthly ?? 0).toLocaleString('vi-VN')}đ/tháng, ${p.storage}, băng thông ${p.bandwidth}, chịu tải ~${Number(p.recommendedVisits || 10000).toLocaleString('vi-VN')} lượt/tháng, ${p.freeDomain ? 'Tặng miễn phí tên miền năm đầu' : 'Không tặng tên miền'} (${p.bestFor || ''})`
+      )
+      .join('\n');
+
+    const domainsSummary = (catalog.domain_pricing || [])
+      .map((d) => `${d.extension}: ${Number(d.price || 0).toLocaleString('vi-VN')}đ/năm`)
+      .join(', ');
+
+    const couponsSummary = (catalog.coupons || [])
+      .map((c) => `${c.code} (${c.type === 'percent' ? `giảm ${c.value}%` : `giảm ${Number(c.value).toLocaleString('vi-VN')}đ`})`)
+      .join(', ');
+
+    const recentHistoryText = Array.isArray(history)
+      ? history
+          .slice(-4)
+          .map((h) => `${h.role === 'user' ? 'Khách hàng' : 'Chuyên gia AI'}: ${String(h.text || '').trim()}`)
+          .join('\n')
+      : '';
+
+    const prompt = `Bạn là Trợ lý Chuyên gia Tư vấn Hạ tầng Hosting & Tên miền trực tuyến 24/7 của HostingAdvisor Việt Nam.
+Dữ liệu bảng giá thực tế trên hệ thống hiện tại:
+Danh sách gói Hosting/VPS:
+${plansSummary}
+Bảng giá tên miền: ${domainsSummary}
+Chu kỳ giảm giá: 12 tháng (nguyên giá), 24 tháng (giảm 10%), 36 tháng (giảm 20%).
+Mã giảm giá đang hoạt động: ${couponsSummary || 'VIBE2026 (giảm 15%), CHUSHOP (giảm 50.000đ)'}.
+
+${recentHistoryText ? `Lịch sử trò chuyện gần đây:\n${recentHistoryText}\n` : ''}Câu hỏi mới của khách hàng: "${cleanMsg}"
+
+Hãy trả lời khách hàng bằng tiếng Việt thật tự nhiên, lịch sự, chuyên nghiệp, ngắn gọn từ 2 đến 4 câu (tuyệt đối KHÔNG dùng icon hay emoji, không dùng định dạng markdown phức tạp). Tư vấn đúng tên gói, đúng mức giá trong danh sách trên và nhắc mã giảm giá phù hợp.`;
+
+    const fallbackObj = buildSmartChatFallback(cleanMsg, catalog);
+
+    try {
+      const aiReply = await callGeminiText(prompt);
+      if (aiReply) {
+        let detectedPlan = null;
+        const lowerReply = aiReply.toLowerCase();
+        for (const p of catalog.plans || []) {
+          if (lowerReply.includes(String(p.name || '').toLowerCase())) {
+            detectedPlan = p;
+            break;
+          }
+        }
+        return res.json({
+          ok: true,
+          source: 'gemini',
+          reply: aiReply,
+          suggestedPlanId: detectedPlan?.id || fallbackObj.suggestedPlanId,
+          suggestedPlanName: detectedPlan?.name || fallbackObj.suggestedPlanName
+        });
+      }
+    } catch (err) {
+      console.error('Gemini /api/chat error:', err.message);
+    }
+
+    return res.json({
+      ok: true,
+      source: 'fallback',
+      reply: fallbackObj.reply,
+      suggestedPlanId: fallbackObj.suggestedPlanId,
+      suggestedPlanName: fallbackObj.suggestedPlanName
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'Lỗi xử lý hội thoại AI: ' + err.message });
+  }
+});
+
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server thương mại điện tử chạy tại: http://localhost:${PORT}`);

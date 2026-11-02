@@ -3328,6 +3328,187 @@ function initDomainChecker() {
   });
 }
 
+// =========================================================
+// 8. WIDGET CHATBOT CHUYÊN GIA AI 24/7 (/api/chat)
+// =========================================================
+
+function initAIChatbotWidget() {
+  const panel = document.getElementById('chatbot-panel');
+  const toggleBtn = document.getElementById('btn-toggle-chatbot');
+  const closeBtn = document.getElementById('btn-close-chatbot');
+  const resetBtn = document.getElementById('btn-reset-chatbot');
+  const quickChips = document.getElementById('chatbot-quick-chips');
+  const messagesBox = document.getElementById('chatbot-messages');
+  const form = document.getElementById('chatbot-form');
+  const input = document.getElementById('chatbot-input');
+  const sendBtn = document.getElementById('btn-send-chatbot');
+
+  if (!panel || !toggleBtn || !messagesBox || !form) return;
+
+  let chatHistory = [];
+  let isSending = false;
+
+  function renderInitialGreeting() {
+    chatHistory = [];
+    messagesBox.innerHTML = `
+      <div class="flex flex-col items-start">
+        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[90%] leading-relaxed">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-1">Chuyên Gia AI HostingAdvisor</div>
+          <div>Chào bạn! Tôi là Trợ lý AI trực tuyến 24/7 của HostingAdvisor. Bạn đang cần tìm gói Hosting cho loại website nào, hay muốn hỏi về tên miền và mã giảm giá? Hãy chọn câu hỏi nhanh phía trên hoặc nhập câu hỏi bên dưới.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function appendMessageBubble(role, text, suggestedPlanId = '', suggestedPlanName = '') {
+    const wrapper = document.createElement('div');
+    if (role === 'user') {
+      wrapper.className = 'flex flex-col items-end';
+      wrapper.innerHTML = `
+        <div class="rounded-2xl rounded-tr-sm bg-brand-600 text-white px-3.5 py-2.5 shadow-2xs max-w-[85%] leading-relaxed">
+          ${escapeHtml(text)}
+        </div>
+      `;
+    } else {
+      wrapper.className = 'flex flex-col items-start';
+      const actionBtnHtml = suggestedPlanId
+        ? `
+          <div class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              data-chat-buy-plan="${escapeHtml(suggestedPlanId)}"
+              class="btn-chat-buy-plan py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold transition-colors"
+            >
+              Chọn Mua Gói ${escapeHtml(suggestedPlanName || 'Đề Xuất')}
+            </button>
+            <a
+              href="#section-comparison"
+              class="py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors"
+            >
+              Xem Bảng So Sánh
+            </a>
+          </div>
+        `
+        : '';
+
+      wrapper.innerHTML = `
+        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-1">Chuyên Gia AI HostingAdvisor</div>
+          <div>${escapeHtml(text)}</div>
+          ${actionBtnHtml}
+        </div>
+      `;
+    }
+    messagesBox.appendChild(wrapper);
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+  }
+
+  async function sendChatMessage(rawText) {
+    const cleanText = String(rawText || '').trim();
+    if (!cleanText || isSending) return;
+
+    isSending = true;
+    if (input) input.value = '';
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = '...';
+    }
+
+    appendMessageBubble('user', cleanText);
+    chatHistory.push({ role: 'user', text: cleanText });
+
+    const typingEl = document.createElement('div');
+    typingEl.className = 'flex flex-col items-start';
+    typingEl.innerHTML = `
+      <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-3.5 py-2.5 text-slate-500 italic text-xs shadow-2xs">
+        Chuyên gia AI đang phân tích và phản hồi...
+      </div>
+    `;
+    messagesBox.appendChild(typingEl);
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: cleanText,
+          history: chatHistory.slice(-6)
+        })
+      });
+      const data = await res.json();
+      typingEl.remove();
+
+      const replyText =
+        data?.reply ||
+        'Với nhu cầu của bạn, gói Business (129.000đ/tháng) là lựa chọn tối ưu nhất nhờ ổ cứng 50 GB NVMe tốc độ cao và ưu đãi tặng miễn phí tên miền năm đầu. Bạn có thể áp thêm mã VIBE2026 để giảm 15%.';
+      const planId = data?.suggestedPlanId || 'business';
+      const planName = data?.suggestedPlanName || 'Business';
+
+      appendMessageBubble('assistant', replyText, planId, planName);
+      chatHistory.push({ role: 'assistant', text: replyText });
+    } catch (err) {
+      typingEl.remove();
+      appendMessageBubble(
+        'assistant',
+        'Hiện tại gói Business (129.000đ/tháng) và gói Shop Pro (249.000đ/tháng) đang được ưu đãi tặng miễn phí tên miền năm đầu kèm mã giảm giá VIBE2026 (giảm 15%). Bạn có thể bấm nút bên dưới để cấu hình gói ngay.',
+        'business',
+        'Business'
+      );
+    } finally {
+      isSending = false;
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Gửi';
+      }
+    }
+  }
+
+  renderInitialGreeting();
+
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = panel.classList.contains('hidden');
+    if (isHidden) {
+      panel.classList.remove('hidden');
+      panel.classList.add('flex');
+      input?.focus();
+    } else {
+      panel.classList.add('hidden');
+      panel.classList.remove('flex');
+    }
+  });
+
+  closeBtn?.addEventListener('click', () => {
+    panel.classList.add('hidden');
+    panel.classList.remove('flex');
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    renderInitialGreeting();
+  });
+
+  quickChips?.addEventListener('click', (event) => {
+    const chip = event.target.closest('.btn-chatbot-chip');
+    if (!chip) return;
+    const question = chip.getAttribute('data-quick-question');
+    if (question) {
+      sendChatMessage(question);
+    }
+  });
+
+  messagesBox.addEventListener('click', (event) => {
+    const buyBtn = event.target.closest('.btn-chat-buy-plan');
+    if (!buyBtn) return;
+    const planId = buyBtn.getAttribute('data-chat-buy-plan') || 'business';
+    openCheckoutModal(planId);
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    sendChatMessage(input?.value || '');
+  });
+}
+
 // Luôn cuộn lên đầu trang khi tải lại trang (F5 / Reload)
 if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
@@ -3355,4 +3536,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrdersAndInvoiceModals();
   initLeadModal();
   initCustomerReviewsForm();
+  initAIChatbotWidget();
 });

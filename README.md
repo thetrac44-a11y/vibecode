@@ -20,8 +20,9 @@
 - **Tính năng 1 — Khảo sát nhu cầu đầu vào & Kiểm tra tên miền trực tuyến (DNS + Database)**:
   - Người dùng nhập nhu cầu thực tế: Loại website (`Blog cá nhân`, `Giới thiệu doanh nghiệp`, `Shop bán hàng / TMĐT`, `Web App / SaaS`), lưu lượng truy cập dự kiến (`Dưới 1.000` đến `Trên 50.000 lượt/tháng`), ngân sách chi trả hàng tháng (`39.000đ – 800.000đ+`) và tên miền mong muốn.
   - Công cụ **Kiểm tra tên miền trực tuyến (`GET /api/domains/check`)**: kết hợp tra cứu bản ghi DNS thực tế trên Internet (`dns.lookup`) và đối chiếu toàn bộ đơn hàng đã đăng ký trên cơ sở dữ liệu Cloud SQL (`orders`), hiển thị trạng thái còn trống theo từng đuôi mở rộng (`.com`, `.vn`, `.net`, `.com.vn`, `.shop`), cho phép chủ sở hữu đang đăng nhập dùng lại tên miền của chính mình để gia hạn/nâng cấp, chặn đặt trùng tên miền của người khác và tự động gợi ý các biến thể tên miền còn trống (`-shop.vn`, `-vn.vn`, `-official.vn`).
-- **Tính năng 2 — AI phân tích chuyên sâu, Gợi ý 3 gói cước & Trợ lý AI Telesale (`gemini-2.5-flash`)**:
+- **Tính năng 2 — AI phân tích chuyên sâu, Chatbot Chuyên gia AI 24/7 & Trợ lý AI Telesale (`gemini-2.5-flash`)**:
   - Kết hợp thuật toán chấm điểm đa tiêu chí và mô hình **Google Gemini (`gemini-2.5-flash`)** qua Backend Proxy (`POST /api/advice`) để đề xuất **01 gói chính phù hợp nhất** và **02 gói thay thế** trong danh mục 6 gói (`Starter`, `Basic`, `Business`, `Shop Pro`, `VPS Growth`, `VPS Power`), giải thích lý do kỹ thuật, tư vấn chiến lược bảo vệ thương hiệu tên miền, tự động lập bảng so sánh trực quan 3 gói và lưu thông tin vào phễu khách hàng tiềm năng (`Leads`).
+  - **Cửa sổ Chatbot Chuyên gia AI 24/7 (`POST /api/chat`)** ở góc dưới bên phải trang chủ: cho phép khách hàng hội thoại hỏi - đáp trực tiếp với AI (hoặc bấm các nút câu hỏi gợi ý nhanh 1-Click) về bảng giá gói cước, so sánh đuôi tên miền `.vn`/`.com`, mã giảm giá và chọn mua gói ngay trong khung chat.
   - Tích hợp **Trợ lý AI Telesale (`POST /api/advice/sales-script`)** tại cổng quản trị OMS, giúp nhân viên tự động soạn kịch bản gọi điện tư vấn 3 bước cá nhân hóa theo từng đơn hàng hoặc từng yêu cầu tư vấn (`Lead`).
 - **Tính năng 3 — Đặt mua Thương mại điện tử, Thanh toán VietQR động, Hóa đơn điện tử & Quản trị Hosting (`cPanel`)**:
   - Tùy chỉnh chu kỳ thanh toán (`12 tháng` nguyên giá, `24 tháng` giảm 10%, `36 tháng` giảm 20%), tự động khấu trừ 100% phí tên miền năm đầu cho các gói có ưu đãi (`Basic`, `Business`, `Shop Pro`), chọn dịch vụ mua kèm (`Add-ons`: Whois Privacy, Daily Backup, Dedicated IP) và áp dụng mã giảm giá (`VIBE2026` giảm 15%, `CHUSHOP` giảm 50.000đ).
@@ -57,7 +58,8 @@
   - Cơ chế dự phòng (Fallback): Nếu môi trường chạy chưa khai báo `GEMINI_API_KEY` hoặc kết nối API bên ngoài gián đoạn, máy chủ tự động chuyển sang bộ máy chấm điểm và sinh văn bản tư vấn theo quy tắc (Rule-based Engine) để đảm bảo ứng dụng luôn phản hồi 100% không bị lỗi.
 - **Mục đích**:
   1. Phân tích nhu cầu loại website, lưu lượng, ngân sách và tên miền của khách hàng tại cổng mua sắm (`POST /api/advice`) để đưa ra lời khuyên chọn gói Hosting và chiến lược tên miền.
-  2. Phân tích dữ liệu đơn hàng và yêu cầu tư vấn tại cổng quản trị (`POST /api/advice/sales-script`) để soạn kịch bản gọi điện Telesale 3 bước cho nhân viên kinh doanh.
+  2. Hội thoại hỏi - đáp trực tuyến 24/7 với khách hàng qua cửa sổ Chatbot AI (`POST /api/chat`) dựa trên dữ liệu bảng giá gói cước, tên miền và mã giảm giá thực tế đang có trên Supabase.
+  3. Phân tích dữ liệu đơn hàng và yêu cầu tư vấn tại cổng quản trị (`POST /api/advice/sales-script`) để soạn kịch bản gọi điện Telesale 3 bước cho nhân viên kinh doanh.
 - **Bảo mật khoá API**: Không đặt khóa API trong mã nguồn phía client (`public/`). Khóa được lưu trong biến môi trường `.env` (nằm trong `.gitignore`, không commit lên Git) và chỉ được gọi qua Backend proxy trong `server.js`.
 
 Biến môi trường cấu hình trong file `.env` (tham khảo `.env.example`):
