@@ -238,11 +238,16 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 sm:p-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-slate-900">
-              Danh Sách Đơn Hàng Thương Mại Điện Tử
-            </h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900">
+                Danh Sách Đơn Hàng Thương Mại Điện Tử
+              </h2>
+              <span id="admin-orders-count-badge" class="inline-block text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-0.5 rounded-full">
+                0 đơn hàng
+              </span>
+            </div>
             <p id="admin-filter-summary" class="text-xs text-slate-500 mt-0.5">
-              Bấm vào nút "Chi tiết &amp; Duyệt" trên từng đơn để xác nhận tiền VietQR, cấp IP Hosting hoặc dùng AI soạn kịch bản Telesale.
+              Đơn mới phát sinh được xếp lên đầu danh sách. Bấm "Chi tiết &amp; Duyệt" để xác nhận tiền VietQR hoặc chuyển trang bên dưới để xem các đơn trước đó.
             </p>
           </div>
 
@@ -251,7 +256,7 @@
               type="text"
               id="filter-search"
               placeholder="Tìm Mã đơn, Tên, SĐT, Tên miền..."
-              class="rounded-xl border border-slate-300 px-3.5 py-2 text-xs sm:text-sm w-full sm:w-60 focus:border-brand-600 focus:outline-none"
+              class="rounded-xl border border-slate-300 px-3.5 py-2 text-xs sm:text-sm w-full sm:w-56 focus:border-brand-600 focus:outline-none"
             />
 
             <select
@@ -274,6 +279,15 @@
               <option value="unassigned">Chưa phân công</option>
             </select>
 
+            <select
+              id="filter-sort"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+            >
+              <option value="newest">Mới nhất lên đầu</option>
+              <option value="oldest">Cũ nhất lên đầu</option>
+              <option value="pending_first">Ưu tiên đơn chờ duyệt</option>
+            </select>
+
             <button
               type="button"
               id="btn-open-quick-order"
@@ -293,9 +307,9 @@
         </div>
 
         <!-- Bảng dữ liệu đơn hàng -->
-        <div class="table-scroll overflow-x-auto pt-4">
+        <div class="table-scroll overflow-x-auto max-h-[560px] overflow-y-auto pt-2">
           <table class="w-full min-w-[920px] border-collapse text-left text-xs sm:text-sm">
-            <thead>
+            <thead class="sticky top-0 z-10 bg-slate-50 shadow-2xs">
               <tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
                 <th class="p-3.5 font-semibold">Mã đơn / Thời gian</th>
                 <th class="p-3.5 font-semibold">Khách hàng</th>
@@ -310,6 +324,9 @@
             <tbody id="admin-orders-tbody" class="divide-y divide-slate-200"></tbody>
           </table>
         </div>
+
+        <!-- Thanh phân trang & chuyển nhanh danh sách đơn hàng -->
+        <div id="orders-pagination-bar" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-2 border-t border-slate-200 text-xs text-slate-600"></div>
       </div>
 
       <!-- End tab-panel-orders -->

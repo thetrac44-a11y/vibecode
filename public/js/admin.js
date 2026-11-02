@@ -854,12 +854,17 @@ function updatePersonalKPIs() {
   if (myConversionEl) myConversionEl.textContent = `${conversionRate}% (${myConvertedLeads.length}/${myLeads.length})`;
 }
 
+let currentOrderPage = 1;
+const ordersPageSize = 6;
+let showAllOrders = false;
+
 function getFilteredOrders() {
   const searchVal = (document.getElementById('filter-search')?.value || '').trim().toLowerCase();
   const statusVal = document.getElementById('filter-status')?.value || 'all';
   const assigneeVal = document.getElementById('filter-assignee')?.value || 'all';
+  const sortVal = document.getElementById('filter-sort')?.value || 'newest';
 
-  return allOrders.filter((o) => {
+  const filtered = allOrders.filter((o) => {
     if (statusVal !== 'all' && o.status !== statusVal) return false;
     if (assigneeVal === 'mine' && (!adminUser || o.assignedTo !== adminUser.id)) return false;
     if (assigneeVal === 'unassigned' && o.assignedTo) return false;
@@ -881,14 +886,42 @@ function getFilteredOrders() {
     }
     return true;
   });
+
+  return filtered.sort((a, b) => {
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
+    if (sortVal === 'oldest') {
+      return timeA - timeB;
+    }
+    if (sortVal === 'pending_first') {
+      const rank = (status) => {
+        if (status === 'paid_processing') return 0;
+        if (status === 'pending_payment') return 1;
+        if (status === 'completed') return 2;
+        return 3;
+      };
+      const diff = rank(a.status) - rank(b.status);
+      if (diff !== 0) return diff;
+    }
+    return timeB - timeA;
+  });
 }
 
 function renderOrdersTable() {
   const tbody = document.getElementById('admin-orders-tbody');
+  const countBadge = document.getElementById('admin-orders-count-badge');
+  const paginationBar = document.getElementById('orders-pagination-bar');
   if (!tbody) return;
 
   const filtered = getFilteredOrders();
   const isAdmin = adminUser?.role === 'admin';
+
+  if (countBadge) {
+    countBadge.textContent =
+      filtered.length === allOrders.length
+        ? `Tổng: ${allOrders.length} đơn hàng`
+        : `Lọc: ${filtered.length} / ${allOrders.length} đơn`;
+  }
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
@@ -898,10 +931,67 @@ function renderOrdersTable() {
         </td>
       </tr>
     `;
+    if (paginationBar) paginationBar.innerHTML = '';
     return;
   }
 
-  tbody.innerHTML = filtered
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ordersPageSize));
+  if (currentOrderPage > totalPages) currentOrderPage = totalPages;
+  if (currentOrderPage < 1) currentOrderPage = 1;
+
+  const startIdx = showAllOrders ? 0 : (currentOrderPage - 1) * ordersPageSize;
+  const endIdx = showAllOrders ? filtered.length : Math.min(startIdx + ordersPageSize, filtered.length);
+  const visibleOrders = filtered.slice(startIdx, endIdx);
+
+  if (paginationBar) {
+    let pageButtonsHtml = '';
+    if (!showAllOrders && totalPages > 1) {
+      for (let p = 1; p <= totalPages; p++) {
+        const activeClass =
+          p === currentOrderPage
+            ? 'bg-brand-600 text-white border-brand-600 font-bold'
+            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 font-semibold';
+        pageButtonsHtml += `
+          <button type="button" data-order-page="${p}" class="btn-order-page px-2.5 py-1 rounded-lg border text-xs transition-colors ${activeClass}">
+            ${p}
+          </button>
+        `;
+      }
+    }
+
+    paginationBar.innerHTML = `
+      <div>
+        Đang hiển thị <strong>đơn thứ ${startIdx + 1} – ${endIdx}</strong> trên tổng số <strong>${filtered.length} đơn hàng</strong>
+        ${filtered.length > ordersPageSize && !showAllOrders ? `(Trang ${currentOrderPage}/${totalPages})` : ''}
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
+        ${
+          !showAllOrders && totalPages > 1
+            ? `
+              <button type="button" data-order-page="${Math.max(1, currentOrderPage - 1)}" ${currentOrderPage <= 1 ? 'disabled' : ''} class="btn-order-page px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 text-xs font-semibold">
+                Trang trước
+              </button>
+              ${pageButtonsHtml}
+              <button type="button" data-order-page="${Math.min(totalPages, currentOrderPage + 1)}" ${currentOrderPage >= totalPages ? 'disabled' : ''} class="btn-order-page px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 text-xs font-semibold">
+                Trang sau
+              </button>
+            `
+            : ''
+        }
+        ${
+          filtered.length > ordersPageSize
+            ? `
+              <button type="button" id="btn-toggle-show-all-orders" class="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors ml-1">
+                ${showAllOrders ? `Thu gọn (${ordersPageSize} đơn/trang)` : `Xem tất cả (${filtered.length} đơn)`}
+              </button>
+            `
+            : ''
+        }
+      </div>
+    `;
+  }
+
+  tbody.innerHTML = visibleOrders
     .map((o) => {
       const addonsStr =
         Array.isArray(o.addons) && o.addons.length > 0
@@ -1282,9 +1372,39 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshBtn?.addEventListener('click', () => loadStaffAndOrders());
   exportBtn?.addEventListener('click', exportOrdersToCSV);
 
-  document.getElementById('filter-search')?.addEventListener('input', renderOrdersTable);
-  document.getElementById('filter-status')?.addEventListener('change', renderOrdersTable);
-  document.getElementById('filter-assignee')?.addEventListener('change', renderOrdersTable);
+  document.getElementById('filter-search')?.addEventListener('input', () => {
+    currentOrderPage = 1;
+    renderOrdersTable();
+  });
+  document.getElementById('filter-status')?.addEventListener('change', () => {
+    currentOrderPage = 1;
+    renderOrdersTable();
+  });
+  document.getElementById('filter-assignee')?.addEventListener('change', () => {
+    currentOrderPage = 1;
+    renderOrdersTable();
+  });
+  document.getElementById('filter-sort')?.addEventListener('change', () => {
+    currentOrderPage = 1;
+    renderOrdersTable();
+  });
+
+  document.getElementById('orders-pagination-bar')?.addEventListener('click', (event) => {
+    const toggleAllBtn = event.target.closest('#btn-toggle-show-all-orders');
+    if (toggleAllBtn) {
+      showAllOrders = !showAllOrders;
+      renderOrdersTable();
+      return;
+    }
+    const pageBtn = event.target.closest('.btn-order-page');
+    if (pageBtn && !pageBtn.disabled) {
+      const targetPage = Number(pageBtn.getAttribute('data-order-page'));
+      if (Number.isFinite(targetPage) && targetPage >= 1) {
+        currentOrderPage = targetPage;
+        renderOrdersTable();
+      }
+    }
+  });
 
   tbody?.addEventListener('click', async (event) => {
     const claimOrderBtn = event.target.closest('.btn-quick-claim-order');
