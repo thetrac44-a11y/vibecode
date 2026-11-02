@@ -197,16 +197,6 @@ async function loadStaffAndOrders() {
         allAddons = cData.addons;
         renderAddonsManagementList();
       }
-      if (cData.dbStatus) {
-        const dbBadge = document.getElementById('db-engine-badge');
-        if (dbBadge) {
-          dbBadge.textContent = `DB: ${cData.dbStatus.engine}`;
-          dbBadge.title = cData.dbStatus.message || '';
-          dbBadge.className = cData.dbStatus.isCloudSql
-            ? 'hidden sm:inline-block ml-2 text-xs font-bold bg-emerald-900/80 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-700'
-            : 'hidden sm:inline-block ml-2 text-xs font-semibold bg-slate-800 text-amber-300 px-2.5 py-0.5 rounded-full border border-slate-700';
-        }
-      }
       if (cData.settings) {
         bankSettings = cData.settings;
         if (window.APP_CONFIG) {
