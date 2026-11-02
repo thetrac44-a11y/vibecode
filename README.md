@@ -198,14 +198,13 @@ Bảng kiểm thử gồm **09 ca kiểm thử thực tế** (4 ca bình thườ
 
 ## 12. Hồ sơ bàn giao
 
-- **Source ZIP**: Chứa toàn bộ mã nguồn Full-stack, kịch bản `supabase_schema.sql`, dữ liệu khởi tạo `db.json`, cấu hình mẫu `.env.example` và tài liệu `README.md` này (không chứa khóa API thật trong mã nguồn).
+- **Source ZIP**: Chứa toàn bộ mã nguồn Full-stack, kịch bản `supabase_schema.sql`, dữ liệu khởi tạo `db.json`, cấu hình mẫu `.env.example` và tài liệu `README.md` này (tuân thủ bảo mật: tuyệt đối không chứa file `.env`, không chứa khóa API thật hay mật khẩu cơ sở dữ liệu trong mã nguồn).
 - **Video demo (<= 02 phút)**: Thể hiện thao tác thực tế trên bản triển khai trực tuyến và đầy đủ 5 nhóm tính năng chính.
 - **Minh chứng dùng AI và Bảng kiểm thử**: Đã tích hợp đầy đủ tại **Mục 10** và **Mục 11** ngay trong tài liệu `README.md` này.
-- **Tài khoản & Dữ liệu Demo phục vụ chấm thi (trên cả bản Demo Online Vercel và bản chạy Local ZIP)**:
+- **Tài khoản & Dữ liệu Demo phục vụ Ban Giám Khảo chấm thi (hoạt động trên cả Demo Online Vercel và bản chạy Local ZIP)**:
   - **Cổng Mua Sắm Khách Hàng (`/index.html`)**:
-    - Tài khoản Khách hàng mẫu: Tên đăng nhập `hoangyen` (hoặc tự đăng ký tài khoản mới / đặt mua trực tiếp không cần đăng nhập; mật khẩu mặc định của các tài khoản demo được khởi tạo sẵn trong `db.json`).
-    - Mã giảm giá thử nghiệm: `VIBE2026` (Giảm 15% tổng hóa đơn), `CHUSHOP` (Giảm trực tiếp 50.000đ).
+    - Tài khoản Khách hàng demo: Tên đăng nhập `hoangyen` — Mật khẩu demo `123456@password` (hoặc tự đăng ký tài khoản mới / đặt mua trực tiếp không cần đăng nhập).
+    - Mã giảm giá demo: `VIBE2026` (Giảm 15% tổng hóa đơn), `CHUSHOP` (Giảm trực tiếp 50.000đ).
   - **Cổng Quản Trị Đơn Hàng & Doanh Thu OMS (`/admin.html`)**:
-    - Tài khoản Quản trị viên (`Admin` — Toàn quyền hệ thống): Tên đăng nhập `admin`
-    - Tài khoản Nhân viên (`Staff` — Kinh doanh & Kỹ thuật): Tên đăng nhập `staff`
-    - *(Lưu ý theo quy định mẫu nộp bài của BTC: Không ghi mật khẩu trực tiếp trong README; Ban Giám Khảo có thể xem mật khẩu mặc định của 3 tài khoản demo tại hàm `seedDefaultDemoUsers` trong file `server.js` dòng 120–160 hoặc đăng ký tài khoản mới trực tiếp trên giao diện).*
+    - Tài khoản Quản trị viên (`Admin` — Toàn quyền hệ thống): Tên đăng nhập `admin` — Mật khẩu demo `admin123@password`
+    - Tài khoản Nhân viên (`Staff` — Kinh doanh & Kỹ thuật): Tên đăng nhập `staff` — Mật khẩu demo `staff123@password`
