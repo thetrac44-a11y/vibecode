@@ -2334,9 +2334,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const shouldHide = btn.dataset.tab === 'system' && adminUser?.role !== 'admin';
       const hiddenClass = shouldHide ? ' hidden' : '';
       if (btn.dataset.tab === tabName) {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white' + hiddenClass;
+        btn.className = 'tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white' + hiddenClass;
       } else {
-        btn.className = 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100' + hiddenClass;
+        btn.className = 'tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100' + hiddenClass;
       }
     });
     document.querySelectorAll('.tab-panel').forEach(panel => {

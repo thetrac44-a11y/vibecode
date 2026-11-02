@@ -3,8 +3,11 @@
  * Tùy chỉnh giao diện, hiệu ứng FAQ Accordion, Con dấu Hóa đơn điện tử và chế độ In (@media print)
  */
 
+html,
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Trạng thái chọn của thẻ Radio Loại website */

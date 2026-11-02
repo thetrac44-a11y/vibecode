@@ -38,44 +38,44 @@
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col overflow-x-hidden">
 
   <!-- ==========================================
        TOPBAR QUẢN TRỊ
        ========================================== -->
-  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg">
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 w-full">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 shrink-0">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-base sm:text-lg">
           H
         </div>
         <div>
-          <span class="font-bold text-base sm:text-lg tracking-tight">HostingAdvisor OMS</span>
+          <span class="font-bold text-sm sm:text-lg tracking-tight">HostingAdvisor OMS</span>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm whitespace-nowrap">
-        <div id="admin-user-bar" class="hidden items-center gap-2">
-          <span id="admin-user-name" class="font-semibold text-slate-200"></span>
-          <span id="admin-role-badge" class="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full"></span>
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs sm:text-sm max-w-full">
+        <div id="admin-user-bar" class="hidden flex-wrap items-center gap-1.5 sm:gap-2 max-w-full">
+          <span id="admin-user-name" class="font-semibold text-slate-200 truncate max-w-[150px] sm:max-w-none"></span>
+          <span id="admin-role-badge" class="text-[11px] sm:text-xs font-extrabold uppercase px-2 py-0.5 rounded-full"></span>
           <button
             type="button"
             id="btn-admin-profile"
-            class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-300 font-semibold border border-slate-700 transition-colors"
+            class="py-1.5 px-2.5 sm:px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-300 font-semibold border border-slate-700 transition-colors whitespace-nowrap"
           >
             Hồ sơ &amp; Đổi MK
           </button>
           <button
             type="button"
             id="btn-admin-refresh"
-            class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors"
+            class="py-1.5 px-2.5 sm:px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors whitespace-nowrap"
           >
             Làm mới
           </button>
           <button
             type="button"
             id="btn-admin-logout"
-            class="py-1.5 px-3 rounded-lg bg-red-600/90 hover:bg-red-600 text-white font-semibold transition-colors"
+            class="py-1.5 px-2.5 sm:px-3 rounded-lg bg-red-600/90 hover:bg-red-600 text-white font-semibold transition-colors whitespace-nowrap"
           >
             Đăng xuất
           </button>
@@ -83,7 +83,7 @@
 
         <a
           href="index.html"
-          class="py-1.5 px-3.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold transition-colors"
+          class="py-1.5 px-2.5 sm:px-3.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold transition-colors whitespace-nowrap"
         >
           Về Cổng Mua Sắm
         </a>
@@ -91,7 +91,7 @@
     </div>
   </header>
 
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+  <main class="flex-1 max-w-7xl w-full min-w-0 mx-auto px-3 sm:px-6 py-5 sm:py-8">
 
     <!-- ==========================================
          MÀN HÌNH 1: ĐĂNG NHẬP QUẢN TRỊ (ADMIN / STAFF)
@@ -142,23 +142,23 @@
     <!-- ==========================================
          MÀN HÌNH 2: DASHBOARD QUẢN TRỊ ĐƠN HÀNG & DOANH THU
          ========================================== -->
-    <section id="admin-dashboard-screen" class="hidden space-y-6">
+    <section id="admin-dashboard-screen" class="hidden space-y-6 min-w-0">
 
       <!-- Tab Navigation Bar -->
       <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
-        <button id="tab-btn-orders" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white" data-tab="orders">
+        <button id="tab-btn-orders" class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors bg-brand-600 text-white" data-tab="orders">
           Đơn Hàng Thương Mại Điện Tử
         </button>
-        <button id="tab-btn-leads" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="leads">
+        <button id="tab-btn-leads" class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="leads">
           Khách Hàng Tiềm Năng (Leads)
         </button>
-        <button id="tab-btn-system" class="tab-btn hidden px-4 py-2 text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="system">
+        <button id="tab-btn-system" class="tab-btn hidden px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors text-slate-600 hover:bg-slate-100" data-tab="system">
           Quản Trị Hệ Thống &amp; Nhân Sự (Admin)
         </button>
       </div>
 
       <!-- Tab Panel: Don Hang (default active) -->
-      <div id="tab-panel-orders" class="tab-panel space-y-6">
+      <div id="tab-panel-orders" class="tab-panel space-y-6 min-w-0">
 
       <!-- 4 Thẻ Thống Kê KPI Doanh Thu -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -245,7 +245,7 @@
             </p>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <input
               type="text"
               id="filter-search"
@@ -255,7 +255,7 @@
 
             <select
               id="filter-status"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm w-full sm:w-auto focus:border-brand-600 focus:outline-none"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="paid_processing">Chờ duyệt tiền (Khách đã CK)</option>
@@ -266,7 +266,7 @@
 
             <select
               id="filter-assignee"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm w-full sm:w-auto focus:border-brand-600 focus:outline-none"
             >
               <option value="all">Tất cả người phụ trách</option>
               <option value="mine">Đơn của tôi phụ trách</option>
@@ -275,7 +275,7 @@
 
             <select
               id="filter-sort"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm w-full sm:w-auto focus:border-brand-600 focus:outline-none"
             >
               <option value="newest">Mới nhất lên đầu</option>
               <option value="oldest">Cũ nhất lên đầu</option>
@@ -285,7 +285,7 @@
             <button
               type="button"
               id="btn-open-quick-order"
-              class="py-2 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shadow-2xs"
+              class="flex-1 sm:flex-none py-2 px-3.5 sm:px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shadow-2xs text-center"
             >
               + Tạo Đơn Hộ Khách
             </button>
@@ -293,7 +293,7 @@
             <button
               type="button"
               id="btn-export-csv"
-              class="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap"
+              class="flex-1 sm:flex-none py-2 px-3.5 sm:px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all whitespace-nowrap text-center"
             >
               Xuất Báo Cáo CSV
             </button>
