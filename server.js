@@ -963,7 +963,9 @@ app.post('/api/orders', async (req, res) => {
       phone = '',
       email = '',
       notes = '',
-      createdByStaff = false
+      createdByStaff = false,
+      isRenewalOrder = false,
+      targetUserId = null
     } = req.body || {};
 
     const catalog = await db.getCatalogData();
@@ -1009,7 +1011,7 @@ app.post('/api/orders', async (req, res) => {
       .trim()
       .toLowerCase();
 
-    if (resolvedDomain) {
+    if (resolvedDomain && !(isStaffOrderCreation && isRenewalOrder)) {
       const allOrders = await db.getAllOrders();
       const domainCheck = await checkSingleDomainAvailability(resolvedDomain, allOrders, tokenUser?.id || null);
       if (!domainCheck.available) {
@@ -1085,7 +1087,7 @@ app.post('/api/orders', async (req, res) => {
     const newOrder = await db.createOrder({
       id: orderId,
       invoiceId,
-      userId: !isStaffOrderCreation && dbUser ? dbUser.id : null,
+      userId: isStaffOrderCreation ? (targetUserId || null) : (dbUser ? dbUser.id : null),
       customerName: finalCustomerName,
       phone: finalPhone,
       email: finalEmail,

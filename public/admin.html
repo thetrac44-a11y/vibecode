@@ -66,6 +66,13 @@
           <span id="admin-role-badge" class="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full"></span>
           <button
             type="button"
+            id="btn-admin-profile"
+            class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-300 font-semibold border border-slate-700 transition-colors"
+          >
+            Hồ sơ &amp; Đổi MK
+          </button>
+          <button
+            type="button"
             id="btn-admin-refresh"
             class="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors"
           >
@@ -741,6 +748,13 @@
               >
                 Cấp Lại Mật Khẩu cPanel Mới
               </button>
+              <button
+                type="button"
+                id="btn-staff-create-renewal"
+                class="hidden py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold transition-colors"
+              >
+                Tạo Đơn Gia Hạn (12 Tháng)
+              </button>
             </div>
           </div>
 
@@ -933,12 +947,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="qo-domain" class="block text-xs font-semibold text-slate-700 mb-1">Tên miền đăng ký kèm (Tùy chọn)</label>
-            <input
-              type="text"
-              id="qo-domain"
-              placeholder="VD: thuonghieuviet.vn"
-              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono focus:border-brand-600 focus:outline-none"
-            />
+            <div class="flex gap-1.5">
+              <input
+                type="text"
+                id="qo-domain"
+                placeholder="VD: thuonghieuviet.vn"
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono focus:border-brand-600 focus:outline-none"
+              />
+              <button
+                type="button"
+                id="btn-qo-check-domain"
+                class="shrink-0 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
+              >
+                Kiểm tra
+              </button>
+            </div>
+            <p id="qo-domain-status" class="hidden text-xs font-medium mt-1"></p>
           </div>
           <div>
             <label for="qo-coupon" class="block text-xs font-semibold text-slate-700 mb-1">Mã giảm giá áp dụng (Nếu có)</label>
@@ -977,6 +1001,122 @@
             class="py-2.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-colors"
           >
             Tạo Đơn &amp; Lấy Mã VietQR
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL HỒ SƠ CÁ NHÂN & ĐỔI MẬT KHẨU NHÂN SỰ (STAFF / ADMIN)
+       ========================================== -->
+  <div
+    id="admin-profile-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-5 sm:p-7 my-8 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Tài Khoản Nhân Sự</span>
+          <h3 class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
+            Hồ Sơ Cá Nhân &amp; Đổi Mật Khẩu
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Cập nhật thông tin liên hệ hoặc đổi mật khẩu bảo mật cho tài khoản của bạn.
+          </p>
+        </div>
+        <button type="button" id="btn-close-admin-profile" class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg bg-slate-100">
+          Đóng
+        </button>
+      </div>
+
+      <form id="admin-profile-form" class="space-y-4 text-xs sm:text-sm" novalidate>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-500">Tên đăng nhập:</span>
+            <strong id="ap-username" class="font-mono text-slate-900 ml-1">@staff</strong>
+          </div>
+          <div>
+            <span class="text-slate-500">Vai trò:</span>
+            <strong id="ap-role" class="uppercase text-brand-700 ml-1">STAFF</strong>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="ap-fullname" class="block text-xs font-semibold text-slate-700 mb-1">Họ và tên nhân sự <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="ap-fullname"
+              placeholder="Họ và tên"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="ap-phone" class="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="ap-phone"
+              placeholder="0912345678"
+              class="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="ap-email" class="block text-xs font-semibold text-slate-700 mb-1">Email công việc</label>
+          <input
+            type="email"
+            id="ap-email"
+            placeholder="staff@hostingadvisor.vn"
+            class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+          />
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 space-y-3">
+          <div class="text-xs font-bold text-slate-800">
+            Đổi mật khẩu mới (Để trống nếu chỉ cập nhật thông tin liên hệ)
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="ap-current-password" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
+              <input
+                type="password"
+                id="ap-current-password"
+                placeholder="Nhập mật khẩu cũ"
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label for="ap-new-password" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới (&ge; 6 ký tự)</label>
+              <input
+                type="password"
+                id="ap-new-password"
+                placeholder="Nhập mật khẩu mới"
+                class="w-full rounded-xl border border-slate-300 px-3.5 py-2 focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div id="ap-feedback-msg" class="hidden rounded-xl p-3 text-xs font-semibold"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <button
+            type="button"
+            id="btn-cancel-admin-profile"
+            class="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold transition-colors"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            type="submit"
+            id="btn-submit-admin-profile"
+            class="py-2.5 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-colors"
+          >
+            Lưu Thay Đổi Hồ Sơ
           </button>
         </div>
       </form>

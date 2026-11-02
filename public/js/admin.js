@@ -590,6 +590,7 @@ function openOrderDetailModal(orderId) {
   const copyReminderBtn = document.getElementById('btn-copy-payment-reminder');
   const copyHandoverBtn = document.getElementById('btn-copy-handover-info');
   const resetCpanelPassBtn = document.getElementById('btn-reset-cpanel-pass');
+  const staffCreateRenewalBtn = document.getElementById('btn-staff-create-renewal');
   const toolFeedbackEl = document.getElementById('detail-tool-feedback');
   if (toolFeedbackEl) toolFeedbackEl.classList.add('hidden');
 
@@ -599,12 +600,14 @@ function openOrderDetailModal(orderId) {
     copyReminderBtn?.classList.add('hidden');
     copyHandoverBtn?.classList.remove('hidden');
     resetCpanelPassBtn?.classList.remove('hidden');
+    staffCreateRenewalBtn?.classList.remove('hidden');
   } else {
     paymentText.textContent = `Cần thu: ${formatVND(order.totalAmount)} — Bấm nút bên cạnh để xác nhận đã nhận tiền VietQR và cấp IP Hosting.`;
     approveBtn.classList.remove('hidden');
     copyReminderBtn?.classList.remove('hidden');
     copyHandoverBtn?.classList.add('hidden');
     resetCpanelPassBtn?.classList.add('hidden');
+    staffCreateRenewalBtn?.classList.add('hidden');
   }
 
   const statusSelect = document.getElementById('detail-status-select');
@@ -1020,20 +1023,245 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Công cụ CSKH 1-Click: Khởi tạo đơn gia hạn 12 tháng hộ khách hàng
+  document.getElementById('btn-staff-create-renewal')?.addEventListener('click', async () => {
+    if (!activeOrder) return;
+    const renewalBtn = document.getElementById('btn-staff-create-renewal');
+    if (renewalBtn) {
+      renewalBtn.disabled = true;
+      renewalBtn.textContent = 'Đang tạo đơn gia hạn...';
+    }
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({
+          customerName: activeOrder.customerName,
+          phone: activeOrder.phone,
+          email: activeOrder.email || '',
+          planId: activeOrder.planId || 'pro',
+          billingCycleMonths: 12,
+          domainName: activeOrder.domainName || '',
+          notes: `Đơn gia hạn thêm 12 tháng từ đơn gốc ${activeOrder.id}`,
+          createdByStaff: true,
+          isRenewalOrder: true,
+          targetUserId: activeOrder.userId || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok || !data.order) {
+        alert(data.error || 'Không thể khởi tạo đơn gia hạn.');
+        return;
+      }
+      await loadStaffAndOrders();
+      openOrderDetailModal(data.order.id);
+      const fb = document.getElementById('detail-tool-feedback');
+      if (fb) {
+        fb.textContent = `Đã tạo đơn gia hạn mới (${data.order.id})! Bạn có thể bấm Copy Tin Nhắn Nhắc Thanh Toán để gửi cho khách.`;
+        fb.classList.remove('hidden');
+      }
+    } catch (err) {
+      alert('Lỗi tạo đơn gia hạn: ' + err.message);
+    } finally {
+      if (renewalBtn) {
+        renewalBtn.disabled = false;
+        renewalBtn.textContent = 'Tạo Đơn Gia Hạn (12 Tháng)';
+      }
+    }
+  });
+
   // Nghiệp vụ Tạo Đơn Hàng Hộ Khách Qua Điện Thoại (Quick Order Modal)
   const quickOrderModal = document.getElementById('quick-order-modal');
   const quickOrderForm = document.getElementById('quick-order-form');
   const qoErrorMsg = document.getElementById('qo-error-msg');
+  const qoDomainStatus = document.getElementById('qo-domain-status');
 
   function closeQuickOrderModal() {
     quickOrderModal?.classList.add('hidden');
     qoErrorMsg?.classList.add('hidden');
+    qoDomainStatus?.classList.add('hidden');
   }
 
   document.getElementById('btn-open-quick-order')?.addEventListener('click', () => {
     quickOrderForm?.reset();
     qoErrorMsg?.classList.add('hidden');
+    qoDomainStatus?.classList.add('hidden');
     quickOrderModal?.classList.remove('hidden');
+  });
+
+  // Kiểm tra tên miền trực tiếp ngay trong cửa sổ Tạo Đơn Hộ Khách
+  document.getElementById('btn-qo-check-domain')?.addEventListener('click', async () => {
+    const rawDomain = (document.getElementById('qo-domain')?.value || '').trim().toLowerCase();
+    const checkBtn = document.getElementById('btn-qo-check-domain');
+    if (!rawDomain) {
+      if (qoDomainStatus) {
+        qoDomainStatus.textContent = 'Vui lòng nhập tên miền khách muốn kiểm tra (VD: congtyabc.vn).';
+        qoDomainStatus.className = 'text-xs font-medium mt-1 text-amber-700';
+        qoDomainStatus.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (checkBtn) {
+      checkBtn.disabled = true;
+      checkBtn.textContent = 'Đang tra...';
+    }
+
+    try {
+      const res = await fetch(`/api/domains/check?domain=${encodeURIComponent(rawDomain)}`);
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        if (qoDomainStatus) {
+          qoDomainStatus.textContent = data.error || 'Không thể kiểm tra tên miền.';
+          qoDomainStatus.className = 'text-xs font-medium mt-1 text-red-600';
+          qoDomainStatus.classList.remove('hidden');
+        }
+        return;
+      }
+
+      const primary = data.primary || (Array.isArray(data.results) ? data.results[0] : null);
+      if (primary && primary.available) {
+        const domainInput = document.getElementById('qo-domain');
+        if (domainInput) domainInput.value = primary.domain;
+        if (qoDomainStatus) {
+          qoDomainStatus.textContent = `Còn trống: ${primary.domain} có thể đăng ký ngay (Phí lẻ: ${formatVND(primary.price)}/năm — miễn phí nếu chọn gói Business/Enterprise).`;
+          qoDomainStatus.className = 'text-xs font-semibold mt-1 text-emerald-700';
+          qoDomainStatus.classList.remove('hidden');
+        }
+      } else if (primary) {
+        const altAvail = (data.results || []).filter((r) => r.available).map((r) => r.domain).slice(0, 3);
+        if (qoDomainStatus) {
+          qoDomainStatus.textContent = `Đã có chủ: ${primary.domain} (${primary.reason}). ${altAvail.length ? 'Gợi ý còn trống: ' + altAvail.join(', ') : ''}`;
+          qoDomainStatus.className = 'text-xs font-semibold mt-1 text-red-600';
+          qoDomainStatus.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      if (qoDomainStatus) {
+        qoDomainStatus.textContent = 'Lỗi kết nối khi kiểm tra tên miền.';
+        qoDomainStatus.className = 'text-xs font-medium mt-1 text-red-600';
+        qoDomainStatus.classList.remove('hidden');
+      }
+    } finally {
+      if (checkBtn) {
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Kiểm tra';
+      }
+    }
+  });
+
+  // Hồ sơ cá nhân & Đổi mật khẩu cho Staff / Admin ngay trên trang Quản trị
+  const adminProfileModal = document.getElementById('admin-profile-modal');
+  const adminProfileForm = document.getElementById('admin-profile-form');
+  const apFeedbackMsg = document.getElementById('ap-feedback-msg');
+
+  function closeAdminProfileModal() {
+    adminProfileModal?.classList.add('hidden');
+    apFeedbackMsg?.classList.add('hidden');
+  }
+
+  document.getElementById('btn-admin-profile')?.addEventListener('click', () => {
+    if (!adminUser) return;
+    const uEl = document.getElementById('ap-username');
+    const rEl = document.getElementById('ap-role');
+    const fEl = document.getElementById('ap-fullname');
+    const pEl = document.getElementById('ap-phone');
+    const eEl = document.getElementById('ap-email');
+    const cpEl = document.getElementById('ap-current-password');
+    const npEl = document.getElementById('ap-new-password');
+
+    if (uEl) uEl.textContent = `@${adminUser.username}`;
+    if (rEl) rEl.textContent = (adminUser.role || 'staff').toUpperCase();
+    if (fEl) fEl.value = adminUser.fullName || '';
+    if (pEl) pEl.value = adminUser.phone || '';
+    if (eEl) eEl.value = adminUser.email || '';
+    if (cpEl) cpEl.value = '';
+    if (npEl) npEl.value = '';
+    apFeedbackMsg?.classList.add('hidden');
+    adminProfileModal?.classList.remove('hidden');
+  });
+
+  document.getElementById('btn-close-admin-profile')?.addEventListener('click', closeAdminProfileModal);
+  document.getElementById('btn-cancel-admin-profile')?.addEventListener('click', closeAdminProfileModal);
+  adminProfileModal?.addEventListener('click', (event) => {
+    if (event.target === adminProfileModal) closeAdminProfileModal();
+  });
+
+  adminProfileForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    apFeedbackMsg?.classList.add('hidden');
+
+    const fullName = (document.getElementById('ap-fullname')?.value || '').trim();
+    const phone = (document.getElementById('ap-phone')?.value || '').trim();
+    const email = (document.getElementById('ap-email')?.value || '').trim();
+    const currentPassword = document.getElementById('ap-current-password')?.value || '';
+    const newPassword = document.getElementById('ap-new-password')?.value || '';
+    const submitBtn = document.getElementById('btn-submit-admin-profile');
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang lưu...';
+    }
+
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          email,
+          currentPassword: currentPassword || undefined,
+          newPassword: newPassword || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        if (apFeedbackMsg) {
+          apFeedbackMsg.textContent = data.error || 'Không thể cập nhật hồ sơ.';
+          apFeedbackMsg.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 text-red-700 border border-red-200';
+          apFeedbackMsg.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (data.token) {
+        adminToken = data.token;
+        localStorage.setItem('ha_admin_token', adminToken);
+        localStorage.setItem('ha_token', adminToken);
+      }
+      if (data.user) {
+        adminUser = data.user;
+      }
+      syncAdminScreenUI();
+      updatePersonalKPIs();
+      await loadStaffAndOrders();
+
+      if (apFeedbackMsg) {
+        apFeedbackMsg.textContent = data.message || 'Đã cập nhật hồ sơ nhân sự thành công!';
+        apFeedbackMsg.className = 'rounded-xl p-3 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+        apFeedbackMsg.classList.remove('hidden');
+      }
+      document.getElementById('ap-current-password').value = '';
+      document.getElementById('ap-new-password').value = '';
+    } catch (err) {
+      if (apFeedbackMsg) {
+        apFeedbackMsg.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
+        apFeedbackMsg.className = 'rounded-xl p-3 text-xs font-semibold bg-red-50 text-red-700 border border-red-200';
+        apFeedbackMsg.classList.remove('hidden');
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Lưu Thay Đổi Hồ Sơ';
+      }
+    }
   });
 
   document.getElementById('btn-close-quick-order-modal')?.addEventListener('click', closeQuickOrderModal);
