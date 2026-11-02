@@ -3360,36 +3360,21 @@ function initAIChatbotWidget() {
     `;
   }
 
-  function appendMessageBubble(role, text, suggestedPlanId = '', suggestedPlanName = '') {
+  function appendMessageBubble(role, text) {
     const wrapper = document.createElement('div');
     if (role === 'user') {
       wrapper.className = 'flex flex-col items-end';
       wrapper.innerHTML = `
-        <div class="rounded-2xl rounded-tr-sm bg-brand-600 text-white px-3.5 py-2 shadow-2xs max-w-[85%] leading-relaxed text-xs">
+        <div class="rounded-2xl rounded-tr-sm bg-brand-600 text-white px-3.5 py-2 shadow-2xs max-w-[85%] leading-relaxed text-xs sm:text-sm">
           ${escapeHtml(text)}
         </div>
       `;
     } else {
       wrapper.className = 'flex flex-col items-start';
-      const actionBtnHtml = suggestedPlanId
-        ? `
-          <div class="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              data-chat-buy-plan="${escapeHtml(suggestedPlanId)}"
-              class="btn-chat-buy-plan py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold transition-colors"
-            >
-              Chọn Mua Gói ${escapeHtml(suggestedPlanName || 'Đề Xuất')}
-            </button>
-          </div>
-        `
-        : '';
-
       wrapper.innerHTML = `
-        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-xs">
+        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-xs sm:text-sm">
           <div class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-1">Chuyên Gia AI HostingAdvisor</div>
           <div>${escapeHtml(text)}</div>
-          ${actionBtnHtml}
         </div>
       `;
     }
@@ -3435,19 +3420,15 @@ function initAIChatbotWidget() {
 
       const replyText =
         data?.reply ||
-        'Với nhu cầu của bạn, gói Business (129.000đ/tháng) là lựa chọn tối ưu nhất nhờ ổ cứng 50 GB NVMe tốc độ cao và ưu đãi tặng miễn phí tên miền năm đầu. Bạn có thể áp thêm mã VIBE2026 để giảm 15%.';
-      const planId = data?.suggestedPlanId || 'business';
-      const planName = data?.suggestedPlanName || 'Business';
+        'Chào bạn! Bạn có thể cho mình biết nhu cầu website dự kiến hoặc câu hỏi về tên miền, gói Hosting để mình giải đáp chi tiết nhé.';
 
-      appendMessageBubble('assistant', replyText, planId, planName);
+      appendMessageBubble('assistant', replyText);
       chatHistory.push({ role: 'assistant', text: replyText });
     } catch (err) {
       typingEl.remove();
       appendMessageBubble(
         'assistant',
-        'Hiện tại gói Business (129.000đ/tháng) và gói Shop Pro (249.000đ/tháng) đang được ưu đãi tặng miễn phí tên miền năm đầu kèm mã giảm giá VIBE2026 (giảm 15%). Bạn có thể bấm nút bên dưới để cấu hình gói ngay.',
-        'business',
-        'Business'
+        'Chào bạn! Hiện tại hệ thống cung cấp các gói Web Hosting từ 39.000đ/tháng đến Cloud VPS chuyên nghiệp, kèm ưu đãi tặng tên miền năm đầu và mã giảm giá VIBE2026 (giảm 15%). Bạn cần mình tư vấn chi tiết phần nào?'
       );
     } finally {
       isSending = false;

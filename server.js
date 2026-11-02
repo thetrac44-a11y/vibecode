@@ -1825,7 +1825,7 @@ Mã giảm giá đang hoạt động: ${couponsSummary || 'VIBE2026 (giảm 15%)
 
 ${recentHistoryText ? `Lịch sử trò chuyện gần đây:\n${recentHistoryText}\n` : ''}Câu hỏi mới của khách hàng: "${cleanMsg}"
 
-Hãy trả lời khách hàng bằng tiếng Việt thật tự nhiên, lịch sự, chuyên nghiệp, ngắn gọn từ 2 đến 4 câu (tuyệt đối KHÔNG dùng icon hay emoji, không dùng định dạng markdown phức tạp). Tư vấn đúng tên gói, đúng mức giá trong danh sách trên và nhắc mã giảm giá phù hợp.`;
+Hãy trả lời khách hàng bằng tiếng Việt thật tự nhiên, lịch sự, chuyên nghiệp, ngắn gọn từ 2 đến 4 câu (tuyệt đối KHÔNG dùng icon hay emoji, không dùng định dạng markdown phức tạp). Nếu khách hàng chỉ chào hỏi xã giao thì chào lại thân thiện và hỏi nhu cầu của khách; chỉ tư vấn gói cước hoặc mã giảm giá khi khách hỏi đến.`;
 
     const fallbackObj = buildSmartChatFallback(cleanMsg, catalog);
 
