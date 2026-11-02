@@ -6,11 +6,11 @@
 
 | Hạng mục | Nội dung |
 |---|---|
-| Tên đội thi | `<Điền tên đội thi của bạn>` |
+| Tên đội thi | **SpyT** |
 | Bảng thi | Bảng A - Công nghệ |
 | Đề bài bốc thăm | Đề số 1 — AI tư vấn chọn gói Hosting/Domain |
 | Demo online | Cổng khách hàng: `https://vibecode-alpha-brown.vercel.app` — Cổng quản trị OMS: `https://vibecode-alpha-brown.vercel.app/admin.html` |
-| Video demo (<= 02 phút) | `<Điền URL video demo của đội>` |
+| Video demo (<= 02 phút) | `https://drive.google.com/drive/folders/1yjiKrtLOPOHEDTzy7AKuseShp6hecFft?usp=drive_link` |
 | Source ZIP | `https://github.com/thetrac44-a11y/vibecode/archive/refs/heads/main.zip` |
 | Minh chứng dùng AI | Xem trực tiếp tại Mục 10 trong tài liệu `README.md` này (nằm trong gói ZIP) |
 | Bảng kiểm thử | Xem trực tiếp tại Mục 11 trong tài liệu `README.md` này (nằm trong gói ZIP) |
