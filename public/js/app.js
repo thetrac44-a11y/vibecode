@@ -3352,9 +3352,9 @@ function initAIChatbotWidget() {
     chatHistory = [];
     messagesBox.innerHTML = `
       <div class="flex flex-col items-start">
-        <div class="rounded-xl rounded-tl-sm bg-white border border-slate-200 p-2.5 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-[11px]">
-          <div class="text-[10px] font-bold uppercase tracking-wider text-brand-700 mb-0.5">Trợ Lý AI</div>
-          <div>Chào bạn! Bạn cần tư vấn gói Hosting, tên miền hay mã giảm giá? Chọn gợi ý phía trên hoặc nhập câu hỏi bên dưới.</div>
+        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-xs">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-1">Chuyên Gia AI HostingAdvisor</div>
+          <div>Chào bạn! Tôi là Trợ lý AI 24/7 của HostingAdvisor. Bạn cần tư vấn gói Hosting, kiểm tra tên miền hay xin mã giảm giá? Hãy chọn gợi ý phía trên hoặc nhập câu hỏi bên dưới.</div>
         </div>
       </div>
     `;
@@ -3365,7 +3365,7 @@ function initAIChatbotWidget() {
     if (role === 'user') {
       wrapper.className = 'flex flex-col items-end';
       wrapper.innerHTML = `
-        <div class="rounded-xl rounded-tr-sm bg-brand-600 text-white px-2.5 py-1.5 shadow-2xs max-w-[85%] leading-relaxed text-[11px]">
+        <div class="rounded-2xl rounded-tr-sm bg-brand-600 text-white px-3.5 py-2 shadow-2xs max-w-[85%] leading-relaxed text-xs">
           ${escapeHtml(text)}
         </div>
       `;
@@ -3373,21 +3373,21 @@ function initAIChatbotWidget() {
       wrapper.className = 'flex flex-col items-start';
       const actionBtnHtml = suggestedPlanId
         ? `
-          <div class="mt-2 pt-1.5 border-t border-slate-100 flex flex-wrap gap-1">
+          <div class="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
             <button
               type="button"
               data-chat-buy-plan="${escapeHtml(suggestedPlanId)}"
-              class="btn-chat-buy-plan py-1 px-2.5 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold transition-colors"
+              class="btn-chat-buy-plan py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold transition-colors"
             >
-              Mua gói ${escapeHtml(suggestedPlanName || 'Đề xuất')}
+              Chọn Mua Gói ${escapeHtml(suggestedPlanName || 'Đề Xuất')}
             </button>
           </div>
         `
         : '';
 
       wrapper.innerHTML = `
-        <div class="rounded-xl rounded-tl-sm bg-white border border-slate-200 p-2.5 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-[11px]">
-          <div class="text-[10px] font-bold uppercase tracking-wider text-brand-700 mb-0.5">Trợ Lý AI</div>
+        <div class="rounded-2xl rounded-tl-sm bg-white border border-slate-200 p-3 text-slate-800 shadow-2xs max-w-[92%] leading-relaxed text-xs">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-1">Chuyên Gia AI HostingAdvisor</div>
           <div>${escapeHtml(text)}</div>
           ${actionBtnHtml}
         </div>

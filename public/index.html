@@ -1239,90 +1239,91 @@
        CHATBOT CHUYÊN GIA AI 24/7 (FLOATING BUBBLE)
        ========================================== -->
   <div id="ai-chatbot-widget" class="fixed bottom-4 right-4 z-40 flex flex-col items-end no-print">
-    <!-- Khung cửa sổ hội thoại Chatbot thu gọn -->
+    <!-- Khung cửa sổ hội thoại Chatbot mở rộng -->
     <div
       id="chatbot-panel"
-      class="hidden mb-2.5 w-[280px] sm:w-[310px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex-col max-h-[68vh] sm:max-h-[410px]"
+      class="hidden mb-3 w-[calc(100vw-2rem)] sm:w-[400px] md:w-[440px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex-col max-h-[76vh] sm:max-h-[520px]"
     >
-      <!-- Header Chatbot gọn -->
-      <div class="bg-slate-900 text-white px-3 py-2 flex items-center justify-between gap-2 border-b border-slate-800">
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center font-extrabold text-[10px] shrink-0">
+      <!-- Header Chatbot -->
+      <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between gap-2 border-b border-slate-800">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center font-extrabold text-[11px] shrink-0">
             AI
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="font-bold text-xs text-white truncate">Trợ Lý AI 24/7</span>
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="Đang trực tuyến"></span>
+              <span class="font-bold text-xs sm:text-sm text-white truncate">Chuyên Gia Tư Vấn AI 24/7</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Đang trực tuyến"></span>
             </div>
+            <p class="text-[11px] text-slate-300 truncate">Giải đáp Gói Hosting, Tên miền &amp; Mã giảm giá</p>
           </div>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
+        <div class="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             id="btn-reset-chatbot"
-            class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+            class="text-[11px] font-semibold px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
           >
             Làm mới
           </button>
           <button
             type="button"
             id="btn-close-chatbot"
-            class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition-colors"
+            class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition-colors"
           >
             Thu gọn
           </button>
         </div>
       </div>
 
-      <!-- Các nút câu hỏi gợi ý nhanh 1-Click thu gọn -->
-      <div id="chatbot-quick-chips" class="bg-slate-50 px-2.5 py-1.5 border-b border-slate-200 flex flex-wrap gap-1">
+      <!-- Các nút câu hỏi gợi ý nhanh 1-Click -->
+      <div id="chatbot-quick-chips" class="bg-slate-50 px-3 py-2 border-b border-slate-200 flex flex-wrap gap-1.5">
         <button
           type="button"
           data-quick-question="Shop bán hàng online nên chọn gói Hosting nào ổn định nhất?"
-          class="btn-chatbot-chip text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
+          class="btn-chatbot-chip text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
         >
-          Gói cho Shop
+          Gói cho Shop bán hàng
         </button>
         <button
           type="button"
           data-quick-question="Những gói nào được tặng miễn phí tên miền năm đầu?"
-          class="btn-chatbot-chip text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
+          class="btn-chatbot-chip text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
         >
-          Tặng tên miền
+          Gói tặng tên miền
         </button>
         <button
           type="button"
           data-quick-question="Cho mình xin các mã giảm giá và ưu đãi đang áp dụng?"
-          class="btn-chatbot-chip text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
+          class="btn-chatbot-chip text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
         >
           Mã giảm giá
         </button>
         <button
           type="button"
           data-quick-question="Nên đăng ký tên miền đuôi .vn hay .com cho doanh nghiệp?"
-          class="btn-chatbot-chip text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
+          class="btn-chatbot-chip text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white hover:bg-brand-50 text-brand-700 border border-brand-200 transition-colors"
         >
-          So sánh .vn/.com
+          So sánh .vn và .com
         </button>
       </div>
 
-      <!-- Khu vực hiển thị tin nhắn hội thoại nhỏ gọn -->
-      <div id="chatbot-messages" class="flex-1 overflow-y-auto p-2.5 space-y-2 bg-slate-50/50 text-xs min-h-[165px] max-h-[220px]"></div>
+      <!-- Khu vực hiển thị tin nhắn hội thoại rộng rãi -->
+      <div id="chatbot-messages" class="flex-1 overflow-y-auto p-3.5 space-y-2.5 bg-slate-50/50 text-xs sm:text-sm min-h-[230px] max-h-[320px]"></div>
 
-      <!-- Khung nhập câu hỏi gọn -->
-      <form id="chatbot-form" class="p-2 bg-white border-t border-slate-200 flex items-center gap-1.5">
+      <!-- Khung nhập câu hỏi -->
+      <form id="chatbot-form" class="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2">
         <input
           type="text"
           id="chatbot-input"
-          placeholder="Hỏi nhanh về gói cước..."
+          placeholder="Nhập câu hỏi về gói cước, tên miền..."
           autocomplete="off"
-          class="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs focus:border-brand-600 focus:outline-none min-w-0"
+          class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:border-brand-600 focus:outline-none min-w-0"
         />
         <button
           type="submit"
           id="btn-send-chatbot"
-          class="py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors shrink-0"
+          class="py-2 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold transition-colors shrink-0"
         >
           Gửi
         </button>
