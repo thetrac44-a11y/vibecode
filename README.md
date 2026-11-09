@@ -157,28 +157,37 @@ Hệ thống áp dụng cơ chế xác thực **JWT (JSON Web Token)** kết h�
 
 ## 10. Minh chứng dùng AI để xây dựng sản phẩm
 
-Dưới đây là 03 vòng tương tác thực tế tiêu biểu trong quá trình sử dụng AI để phát triển, kiểm thử phát hiện lỗi và hoàn thiện sản phẩm **HostingAdvisor v3.3**:
+- **Tệp minh chứng & Ảnh chụp thực tế**: Tích hợp trực tiếp bên dưới kèm 03 ảnh chụp quá trình phát hiện lỗi và cải thiện trong thư mục `docs/ai-evidence/` (nằm trong gói Source ZIP và hiển thị trực tiếp trên GitHub).
+- **Tóm tắt 03 vòng thử và cải thiện trọng tâm** (theo cấu trúc *Mục tiêu -> Yêu cầu cho AI -> Vấn đề phát hiện khi thử -> Yêu cầu sửa -> Kết quả kiểm tra lại*):
 
-### Vòng 1: Xây dựng công cụ kiểm tra tên miền thực tế kết hợp AI tư vấn gói cước & Chatbot 24/7
-- **Mục tiêu**: Giúp người dùng vừa nhận được gợi ý gói Hosting từ Gemini AI, vừa kiểm tra chính xác tên miền dự kiến có còn trống hay không, đồng thời có thể hỏi đáp tự do qua cửa sổ Chatbot AI 24/7.
-- **Yêu cầu cho AI**: *"Viết API `/api/advice` và `/api/chat` kết nối Gemini `gemini-2.5-flash` đọc dữ liệu bảng giá trực tiếp từ Supabase; đồng thời viết API `/api/domains/check` kiểm tra trạng thái tên miền và tính phí tự động trong giỏ hàng."*
-- **Vấn đề phát hiện khi thử**: Phát hiện 2 vấn đề thực tế: (1) Bản đầu tiên của `/api/domains/check` chỉ kiểm tra cú pháp nên cho phép đặt trùng tên miền đã có người đăng ký; (2) Ở cửa sổ Chatbot 24/7, việc gắn nút "Chọn Mua Gói Business" tự động dưới mọi tin nhắn khiến người dùng hiểu nhầm là Chatbot yêu cầu mua gói trả phí mới cho chat tiếp, và nút mở chat dạng thanh dài chiếm diện tích màn hình.
-- **Yêu cầu sửa**: *"Nâng cấp `/api/domains/check` kết hợp `dns.promises.lookup` và kiểm tra trùng đơn hàng trên Supabase kèm gợi ý 3 biến thể tên miền còn trống; thu gọn nút mở Chatbot thành bóng chat tròn `48x48px` ở góc phải, mở rộng khung đọc tin nhắn và bỏ nút mua gói cưỡng bức dưới câu trả lời để AI hội thoại tự nhiên."*
-- **Kết quả kiểm tra lại**: Kiểm tra tên miền báo chính xác trạng thái DNS/Database; bóng chat AI nhỏ gọn, khung hội thoại rộng rãi và trả lời tự nhiên đúng ngữ cảnh câu hỏi.
+### Vòng 1: Xây dựng công cụ kiểm tra tên miền DNS thực tế & Tinh chỉnh Bong bóng Chatbot AI 24/7
+- **Mục tiêu**: Giúp khách hàng kiểm tra chính xác tên miền dự kiến có còn trống hay không và hỏi đáp tự do qua cửa sổ Chatbot AI 24/7.
+- **Yêu cầu cho AI**: *"Viết API `/api/domains/check` kiểm tra trạng thái tên miền và tích hợp cửa sổ Chatbot AI 24/7 (`/api/chat`) kết nối Gemini `gemini-2.5-flash` đọc dữ liệu bảng giá trực tiếp từ Supabase."*
+- **Vấn đề phát hiện khi thử**: (1) Bản đầu tiên của `/api/domains/check` chỉ kiểm tra cú pháp nên cho phép đặt trùng tên miền đã tồn tại; (2) Ở cửa sổ Chatbot 24/7, việc tự động gắn nút `"Chọn Mua Gói Business"` dưới mọi câu trả lời khiến người dùng hiểu nhầm là phải mua gói Pro mới được chat tiếp (xem ảnh phát hiện lỗi bên dưới).
+- **Yêu cầu sửa**: *"Nâng cấp `/api/domains/check` kết hợp `dns.promises.lookup` và kiểm tra trùng đơn hàng trên Supabase kèm gợi ý 3 biến thể tên miền còn trống; thu gọn nút mở Chatbot thành bóng chat tròn `48x48px` ở góc phải và gỡ bỏ nút mua gói cưỡng bức dưới câu trả lời."*
+- **Kết quả kiểm tra lại**: Công cụ kiểm tra tên miền báo chính xác trạng thái DNS/Database; bóng chat AI nhỏ gọn và hội thoại tự nhiên.
+  - **Ảnh minh chứng 1 & 2** *(Phát hiện nút mua gói gây hiểu nhầm trong khung Chat và Công cụ kiểm tra DNS thực tế sau khi hoàn thiện)*:
+
+![Ảnh phát hiện vấn đề nút mua gói trong Chatbot AI](docs/ai-evidence/vong2_chatbot_ai_truoc_khi_sua.png)
+
+![Công cụ kiểm tra tên miền DNS và CSDL thời gian thực](docs/ai-evidence/vong1_kiem_tra_ten_mien.png)
 
 ### Vòng 2: Khắc phục lỗi rò rỉ phiên đăng nhập và ngày hết hạn dịch vụ (`Invalid Date`) ở phân hệ Khách hàng
 - **Mục tiêu**: Đảm bảo mỗi khách hàng đăng nhập chỉ nhìn thấy đơn hàng của riêng mình và xem đúng thông số kỹ thuật trong bảng điều khiển `cPanel`.
 - **Yêu cầu cho AI**: *"Kiểm tra toàn bộ luồng Đăng nhập, mục 'Đơn Hàng Của Tôi' và cửa sổ 'Quản Lý Hosting (cPanel)' trên `index.html`."*
-- **Vấn đề phát hiện khi thử**: Phát hiện 2 lỗi thực tế: (1) Khi tài khoản A đăng xuất và tài khoản B đăng nhập trên cùng trình duyệt, mục "Đơn Hàng Của Tôi" vẫn hiển thị đơn của tài khoản A do biến `ha_last_buyer` trong `localStorage` chưa được xóa và Backend còn lọc ghép theo SĐT cũ; (2) Một số đơn hàng đã duyệt trước đó chưa có trường `expireDate` trong `serviceDetails` khiến giao diện hiển thị chữ `Invalid Date`.
-- **Yêu cầu sửa**: *"Sửa `GET /api/orders/my-orders` chỉ lọc nghiêm ngặt theo `o.userId === tokenUser.id` khi người dùng đã đăng nhập; xóa sạch dữ liệu người mua tạm khi chuyển đổi phiên đăng nhập; bổ sung công thức tự động tính ngày hết hạn dự phòng từ `activatedAt + billingCycleMonths * 30 ngày` khi duyệt đơn và khi hiển thị `cPanel`."*
+- **Vấn đề phát hiện khi thử**: (1) Khi tài khoản A đăng xuất và tài khoản B đăng nhập trên cùng trình duyệt, mục "Đơn Hàng Của Tôi" vẫn hiển thị đơn của tài khoản A do biến `ha_last_buyer` trong `localStorage` chưa được xóa; (2) Một số đơn hàng cũ thiếu trường `expireDate` trong `serviceDetails` khiến giao diện hiển thị `Invalid Date`.
+- **Yêu cầu sửa**: *"Sửa `GET /api/orders/my-orders` chỉ lọc nghiêm ngặt theo `o.userId === tokenUser.id` khi đã đăng nhập; xóa sạch dữ liệu người mua tạm khi đăng xuất; bổ sung công thức tự động tính ngày hết hạn dự phòng từ `activatedAt + billingCycleMonths * 30 ngày`."*
 - **Kết quả kiểm tra lại**: Các tài khoản khách hàng được cô lập dữ liệu tuyệt đối 100%; toàn bộ đơn hàng đã kích hoạt đều hiển thị chính xác ngày kích hoạt và ngày hết hạn định dạng `dd/mm/yyyy`.
 
 ### Vòng 3: Mở rộng nghiệp vụ Staff/Admin thực tế và sửa lỗi tràn giao diện trên điện thoại di động
-- **Mục tiêu**: Hoàn thiện đầy đủ công cụ làm việc cho Nhân viên (`Staff`) và Quản trị viên (`Admin`) trên `admin.html`, đảm bảo hiển thị tốt trên cả máy tính và điện thoại.
-- **Yêu cầu cho AI**: *"Bổ sung cho Staff thanh KPI hoa hồng 5%, nút Nhận đơn, tạo đơn hộ khách POS, tạo đơn gia hạn 1-Click, copy tin nhắn bàn giao Hosting; bổ sung cho Admin tab riêng gồm Báo cáo phân tích cơ cấu doanh thu, Bảng xếp hạng nhân sự, Danh bạ khách hàng LTV và công cụ chỉnh sửa trực tiếp giá gói Hosting / Tên miền / Add-ons trên Supabase."*
-- **Vấn đề phát hiện khi thử**: Khi kiểm tra thực tế trên trình duyệt, phát hiện 3 vấn đề: (1) Admin đổi mật khẩu nhân viên báo thành công nhưng không đăng nhập được bằng mật khẩu mới do cột mật khẩu trên bảng `users` của Supabase tên là `password_hash` chứ không phải `password`; (2) Khi có nhiều đơn mới phát sinh, các đơn cũ bị đẩy sâu xuống dưới không có phân trang; (3) Trên màn hình điện thoại di động, thanh người dùng (`#admin-user-bar`) trên Header không tự xuống dòng làm tràn ngang màn hình.
-- **Yêu cầu sửa**: *"Cập nhật hàm `updateUser` trong `db.js` ghi đúng cột `password_hash`; bổ sung bộ chọn sắp xếp và thanh phân trang (`6 đơn/trang` + nút `Xem tất cả`) cho bảng đơn hàng; thêm `flex-wrap`, `min-w-0` và `overflow-x: hidden` cho thanh Header cùng khung bảng trên `admin.html`."*
-- **Kết quả kiểm tra lại**: Tính năng đổi mật khẩu hoạt động chính xác ngay trên Supabase; bảng đơn hàng phân trang rõ ràng; giao diện điện thoại vừa khít 100% khung nhìn ngang.
+- **Mục tiêu**: Hoàn thiện công cụ làm việc cho Nhân viên (`Staff`) và Quản trị viên (`Admin`) trên `admin.html`, đảm bảo hiển thị chuẩn trên cả máy tính và điện thoại.
+- **Yêu cầu cho AI**: *"Bổ sung cho Staff thanh KPI hoa hồng 5%, nút Nhận đơn, tạo đơn hộ khách POS, phân trang đơn hàng; bổ sung cho Admin Báo cáo cơ cấu doanh thu, Bảng xếp hạng KPI, Danh bạ khách hàng LTV và chỉnh sửa trực tiếp bảng giá trên Supabase."*
+- **Vấn đề phát hiện khi thử**: (1) Admin đổi mật khẩu nhân viên báo thành công nhưng không đăng nhập được bằng mật khẩu mới do cột trên Supabase tên là `password_hash`; (2) Trên màn hình điện thoại di động, thanh người dùng trên Header không tự xuống dòng làm tràn ngang màn hình (xem ảnh lỗi thực tế phát hiện trên điện thoại bên dưới).
+- **Yêu cầu sửa**: *"Cập nhật hàm `updateUser` trong `db.js` ghi đúng cột `password_hash`; thêm `flex-wrap`, `min-w-0` và `overflow-x: clip` cho thanh Header cùng khung bảng trên `admin.html` để vừa chống tràn ngang trên mobile vừa giữ nguyên thanh điều hướng cố định (`sticky top-0`) khi cuộn trang."*
+- **Kết quả kiểm tra lại**: Tính năng đổi mật khẩu hoạt động chính xác ngay trên Supabase; giao diện điện thoại vừa khít 100% khung nhìn ngang.
+  - **Ảnh minh chứng 3** *(Lỗi tràn ngang thanh Header trên màn hình điện thoại được phát hiện khi thử nghiệm thực tế trước khi yêu cầu AI sửa bằng `flex-wrap` và `overflow-x: clip`)*:
+
+![Ảnh phát hiện lỗi tràn giao diện mobile trên trang Admin trước khi sửa](docs/ai-evidence/vong3_loi_tran_mobile_admin.png)
 
 ## 11. Bảng kiểm thử
 
